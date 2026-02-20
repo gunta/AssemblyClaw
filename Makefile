@@ -15,6 +15,7 @@ SDK      = $(shell xcrun --show-sdk-path)
 # Sources (order matters for link)
 SRCS     = $(SRCDIR)/version.s \
            $(SRCDIR)/error.s \
+           $(SRCDIR)/varargs.s \
            $(SRCDIR)/string.s \
            $(SRCDIR)/memory.s \
            $(SRCDIR)/io.s \

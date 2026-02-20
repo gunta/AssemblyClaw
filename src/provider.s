@@ -48,23 +48,15 @@ _provider_chat:
     ldr     x2, [x20, #32]             // CFG_MODEL ptr
     ldr     x3, [x20, #40]             // CFG_MODEL len
 
-    // snprintf the request JSON
+    // snprintf(buf, size, fmt, model_len, model_ptr, message)
     mov     x0, x21                     // buffer
     mov     x1, #BUF_LARGE             // size
-    adrp    x4, _str_req_fmt@PAGE
-    add     x4, x4, _str_req_fmt@PAGEOFF
-    // Args: fmt, model_len, model_ptr, message
-    // printf format: %.*s for model, %s for message
-    mov     x5, x3                      // model len (for %.*s)
-    mov     x6, x2                      // model ptr
-    mov     x7, x19                     // user message
-    // Need to use stack for >8 args or rearrange
-    // snprintf(buf, 8192, fmt, model_len, model_ptr, message)
-    mov     x2, x4                      // fmt
-    mov     x3, x5                      // model_len
-    mov     x4, x6                      // model_ptr
-    mov     x5, x7                      // message
-    bl      _snprintf
+    adrp    x2, _str_req_fmt@PAGE
+    add     x2, x2, _str_req_fmt@PAGEOFF
+    // Varargs: model_len, model_ptr, message.
+    ldr     x4, [x20, #32]             // model ptr
+    mov     x5, x19                     // user message (%s)
+    bl      _snprintf_va3
 
     // Build auth header: "Bearer <api_key>"
     sub     sp, sp, #512
@@ -72,10 +64,9 @@ _provider_chat:
     mov     x1, #512
     adrp    x2, _str_bearer_fmt@PAGE
     add     x2, x2, _str_bearer_fmt@PAGEOFF
-    ldr     x3, [x20, #16]             // CFG_API_KEY ptr
-    ldr     x4, [x20, #24]             // CFG_API_KEY len
-    // Use %.*s for the key
-    bl      _snprintf
+    ldr     x3, [x20, #24]             // CFG_API_KEY len (%.*s)
+    ldr     x4, [x20, #16]             // CFG_API_KEY ptr
+    bl      _snprintf_va2
 
     // Get base URL
     ldr     x0, [x20, #48]             // CFG_BASE_URL ptr

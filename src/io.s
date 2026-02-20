@@ -61,7 +61,7 @@ _print_stderr:
     mov     x2, x1
     adrp    x1, _str_fmt_sn@PAGE
     add     x1, x1, _str_fmt_sn@PAGEOFF
-    bl      _fprintf
+    bl      _fprintf_va1
 
     ldp     x29, x30, [sp], #16
     ret

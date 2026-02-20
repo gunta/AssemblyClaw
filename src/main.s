@@ -123,7 +123,7 @@ _main:
     adrp    x1, _str_unknown_fmt@PAGE
     add     x1, x1, _str_unknown_fmt@PAGEOFF
     mov     x2, x21
-    bl      _fprintf
+    bl      _fprintf_va1
     mov     x0, #1
     b       .Lmain_exit
 

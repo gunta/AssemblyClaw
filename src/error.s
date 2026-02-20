@@ -28,49 +28,16 @@ _error_print:
     stp     x29, x30, [sp, #-16]!
     mov     x29, sp
 
-    // Get error string
+    // Resolve error code to message pointer.
     bl      _error_string
+    mov     x2, x0                      // variadic arg: message pointer
 
-    // Print "error: " prefix
-    stp     x0, xzr, [sp, #-16]!       // save error string
-    adrp    x0, _str_error_prefix@PAGE
-    add     x0, x0, _str_error_prefix@PAGEOFF
-    mov     x1, #7                      // "error: " length
-    mov     x2, #2                      // stderr
-    bl      _write_fd
-
-    // Print error message
-    ldp     x0, xzr, [sp], #16
-    bl      _strlen_simd                // get length
-    mov     x2, #2                      // stderr
-    mov     x1, x0                      // length
-    // need to reload string pointer — we lost it
-    // Simpler: just use fputs
-    ldp     x29, x30, [sp], #16
-
-    // Fall through to simpler approach
-    stp     x29, x30, [sp, #-16]!
-    mov     x29, sp
-    bl      _error_string
-    mov     x1, x0
-    adrp    x0, _str_error_fmt@PAGE
-    add     x0, x0, _str_error_fmt@PAGEOFF
-    // Use fprintf(stderr, "error: %s\n", msg)
     adrp    x8, ___stderrp@GOTPAGE
     ldr     x8, [x8, ___stderrp@GOTPAGEOFF]
     ldr     x0, [x8]                    // FILE* stderr
-    adrp    x9, _str_error_fmt@PAGE
-    add     x9, x9, _str_error_fmt@PAGEOFF
-    mov     x1, x9
-    // x2 = error string (need to get it again)
-    bl      _error_string
-    mov     x2, x0
-    adrp    x8, ___stderrp@GOTPAGE
-    ldr     x8, [x8, ___stderrp@GOTPAGEOFF]
-    ldr     x0, [x8]
     adrp    x1, _str_error_fmt@PAGE
     add     x1, x1, _str_error_fmt@PAGEOFF
-    bl      _fprintf
+    bl      _fprintf_va1
 
     ldp     x29, x30, [sp], #16
     ret
@@ -91,7 +58,7 @@ _die:
     ldr     x0, [x8]
     adrp    x1, _str_error_fmt@PAGE
     add     x1, x1, _str_error_fmt@PAGEOFF
-    bl      _fprintf
+    bl      _fprintf_va1
 
     mov     x0, #1
     bl      _exit

@@ -47,7 +47,7 @@ _config_load:
     adrp    x2, _str_cfg_path_fmt@PAGE
     add     x2, x2, _str_cfg_path_fmt@PAGEOFF
     mov     x3, x19                     // home
-    bl      _snprintf
+    bl      _snprintf_va1
 
     // Read the file
     mov     x0, sp                      // path
@@ -209,18 +209,22 @@ _config_print_status:
     ldr     x1, [x0, #CFG_LOADED]
     cbz     x1, .Lcfg_status_not_loaded
 
-    // Provider
-    ldr     x2, [x0, #CFG_PROVIDER]
-    ldr     x3, [x0, #(CFG_PROVIDER + 8)]
-    // Model
-    ldr     x4, [x0, #CFG_MODEL]
-    ldr     x5, [x0, #(CFG_MODEL + 8)]
-    // API key (show masked)
-    ldr     x6, [x0, #CFG_API_KEY]
+    // printf format uses: %.*s %.*s %.*s
+    // args order: len, ptr pairs for provider/model/api_key
+    ldr     x1, [x0, #(CFG_PROVIDER + 8)] // provider len
+    ldr     x2, [x0, #CFG_PROVIDER]       // provider ptr
+    ldr     x3, [x0, #(CFG_MODEL + 8)]    // model len
+    ldr     x4, [x0, #CFG_MODEL]          // model ptr
+    ldr     x5, [x0, #(CFG_API_KEY + 8)]  // api_key len
+    ldr     x6, [x0, #CFG_API_KEY]        // api_key ptr
+    // Limit displayed key prefix to at most 4 characters.
+    mov     x7, #4
+    cmp     x5, x7
+    csel    x5, x5, x7, ls
 
     adrp    x0, _str_status_fmt@PAGE
     add     x0, x0, _str_status_fmt@PAGEOFF
-    bl      _printf
+    bl      _printf_va6
     b       .Lcfg_status_done
 
 .Lcfg_status_not_loaded:

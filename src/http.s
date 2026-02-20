@@ -64,46 +64,46 @@ _http_post:
     mov     x0, x23
     mov     x1, #CURLOPT_URL
     mov     x2, x19
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set POST body
     mov     x0, x23
     mov     x1, #CURLOPT_POSTFIELDS
     mov     x2, x20
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set POST method
     mov     x0, x23
     mov     x1, #CURLOPT_POST
     mov     x2, #1
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set write callback
     mov     x0, x23
     mov     x1, #CURLOPT_WRITEFUNCTION
     adrp    x2, _http_write_callback@PAGE
     add     x2, x2, _http_write_callback@PAGEOFF
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set write data (pointer to our response struct)
     mov     x0, x23
     mov     x1, #CURLOPT_WRITEDATA
     adrp    x2, _g_http_resp@PAGE
     add     x2, x2, _g_http_resp@PAGEOFF
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set timeout
     mov     x0, x23
     mov     x1, #CURLOPT_TIMEOUT
     mov     x2, #HTTP_TIMEOUT_SECS
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Set user agent
     mov     x0, x23
     mov     x1, #CURLOPT_USERAGENT
     adrp    x2, _str_useragent@PAGE
     add     x2, x2, _str_useragent@PAGEOFF
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Build headers list
     // Content-Type: application/json
@@ -122,7 +122,7 @@ _http_post:
     adrp    x2, _str_auth_fmt@PAGE
     add     x2, x2, _str_auth_fmt@PAGEOFF
     mov     x3, x21                     // auth value
-    bl      _snprintf
+    bl      _snprintf_va1
 
     mov     x0, x24                     // slist
     mov     x1, sp                      // auth header
@@ -134,7 +134,7 @@ _http_post:
     mov     x0, x23
     mov     x1, #CURLOPT_HTTPHEADER
     mov     x2, x24
-    bl      _curl_easy_setopt
+    bl      _curl_easy_setopt_va1
 
     // Perform request
     mov     x0, x23
