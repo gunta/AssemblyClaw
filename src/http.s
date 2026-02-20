@@ -1,0 +1,267 @@
+// http.s — HTTPS client via libcurl FFI
+// ARM64 macOS — Apple Silicon optimized
+//
+// Wraps libcurl for HTTPS POST requests to LLM APIs.
+// Uses arena allocator for response buffers.
+// libcurl ships with macOS — zero install needed.
+
+.include "include/constants.inc"
+
+.section __TEXT,__text,regular,pure_instructions
+.p2align 4
+
+// Response buffer structure (in .bss):
+//   +0:  data pointer (arena-allocated)
+//   +8:  length (current)
+//   +16: capacity
+.set RESP_DATA,     0
+.set RESP_LEN,      8
+.set RESP_CAP,      16
+.set RESP_SIZE,     24
+
+// ──────────────────────────────────────────────────────────────────
+// _http_post: POST JSON to URL with auth header
+//   x0 = URL (NUL-terminated)
+//   x1 = JSON body (NUL-terminated)
+//   x2 = auth header value (e.g., "Bearer sk-...")  (NUL-terminated)
+//   Returns: x0 = response body pointer (NUL-terminated)
+//            x1 = response body length
+//            x0 = NULL on error
+// ──────────────────────────────────────────────────────────────────
+.global _http_post
+_http_post:
+    stp     x29, x30, [sp, #-80]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+    stp     x23, x24, [sp, #48]
+    str     x25, [sp, #64]
+
+    mov     x19, x0                     // URL
+    mov     x20, x1                     // body
+    mov     x21, x2                     // auth header value
+
+    // Allocate response buffer from arena (8KB initial)
+    mov     x0, #BUF_LARGE
+    bl      _arena_alloc
+    cbz     x0, .Lhttp_error
+    mov     x22, x0                     // response buffer
+
+    // Initialize response state
+    adrp    x1, _g_http_resp@PAGE
+    add     x1, x1, _g_http_resp@PAGEOFF
+    str     x22, [x1, #RESP_DATA]
+    str     xzr, [x1, #RESP_LEN]
+    mov     x2, #BUF_LARGE
+    str     x2, [x1, #RESP_CAP]
+
+    // curl_easy_init()
+    bl      _curl_easy_init
+    cbz     x0, .Lhttp_error
+    mov     x23, x0                     // curl handle
+
+    // Set URL
+    mov     x0, x23
+    mov     x1, #CURLOPT_URL
+    mov     x2, x19
+    bl      _curl_easy_setopt
+
+    // Set POST body
+    mov     x0, x23
+    mov     x1, #CURLOPT_POSTFIELDS
+    mov     x2, x20
+    bl      _curl_easy_setopt
+
+    // Set POST method
+    mov     x0, x23
+    mov     x1, #CURLOPT_POST
+    mov     x2, #1
+    bl      _curl_easy_setopt
+
+    // Set write callback
+    mov     x0, x23
+    mov     x1, #CURLOPT_WRITEFUNCTION
+    adrp    x2, _http_write_callback@PAGE
+    add     x2, x2, _http_write_callback@PAGEOFF
+    bl      _curl_easy_setopt
+
+    // Set write data (pointer to our response struct)
+    mov     x0, x23
+    mov     x1, #CURLOPT_WRITEDATA
+    adrp    x2, _g_http_resp@PAGE
+    add     x2, x2, _g_http_resp@PAGEOFF
+    bl      _curl_easy_setopt
+
+    // Set timeout
+    mov     x0, x23
+    mov     x1, #CURLOPT_TIMEOUT
+    mov     x2, #HTTP_TIMEOUT_SECS
+    bl      _curl_easy_setopt
+
+    // Set user agent
+    mov     x0, x23
+    mov     x1, #CURLOPT_USERAGENT
+    adrp    x2, _str_useragent@PAGE
+    add     x2, x2, _str_useragent@PAGEOFF
+    bl      _curl_easy_setopt
+
+    // Build headers list
+    // Content-Type: application/json
+    mov     x0, #0                      // slist = NULL
+    adrp    x1, _str_content_type@PAGE
+    add     x1, x1, _str_content_type@PAGEOFF
+    bl      _curl_slist_append
+    mov     x24, x0                     // save slist
+
+    // Authorization: Bearer <key>
+    // Build "Authorization: Bearer <key>" string
+    // Use snprintf into a stack buffer
+    sub     sp, sp, #512
+    mov     x0, sp
+    mov     x1, #512
+    adrp    x2, _str_auth_fmt@PAGE
+    add     x2, x2, _str_auth_fmt@PAGEOFF
+    mov     x3, x21                     // auth value
+    bl      _snprintf
+
+    mov     x0, x24                     // slist
+    mov     x1, sp                      // auth header
+    bl      _curl_slist_append
+    mov     x24, x0
+    add     sp, sp, #512
+
+    // Set headers
+    mov     x0, x23
+    mov     x1, #CURLOPT_HTTPHEADER
+    mov     x2, x24
+    bl      _curl_easy_setopt
+
+    // Perform request
+    mov     x0, x23
+    bl      _curl_easy_perform
+    mov     x25, x0                     // save result code
+
+    // Free headers
+    mov     x0, x24
+    bl      _curl_slist_free_all
+
+    // Cleanup curl handle
+    mov     x0, x23
+    bl      _curl_easy_cleanup
+
+    // Check result
+    cmp     x25, #CURLE_OK
+    b.ne    .Lhttp_error
+
+    // NUL-terminate response
+    adrp    x1, _g_http_resp@PAGE
+    add     x1, x1, _g_http_resp@PAGEOFF
+    ldr     x0, [x1, #RESP_DATA]
+    ldr     x2, [x1, #RESP_LEN]
+    strb    wzr, [x0, x2]              // NUL terminate
+
+    // Return response
+    mov     x1, x2                      // length
+    // x0 already has data pointer
+
+    ldr     x25, [sp, #64]
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #80
+    ret
+
+.Lhttp_error:
+    mov     x0, #0
+    mov     x1, #0
+    ldr     x25, [sp, #64]
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #80
+    ret
+
+// ──────────────────────────────────────────────────────────────────
+// _http_write_callback: libcurl write callback
+//   x0 = data pointer
+//   x1 = size (always 1)
+//   x2 = nmemb
+//   x3 = userdata (pointer to response struct)
+//   Returns: x0 = bytes consumed
+// ──────────────────────────────────────────────────────────────────
+.global _http_write_callback
+_http_write_callback:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+
+    mul     x4, x1, x2                 // total bytes = size * nmemb
+    mov     x19, x4                     // save total
+
+    // Get response state
+    ldr     x5, [x3, #RESP_DATA]       // data ptr
+    ldr     x6, [x3, #RESP_LEN]        // current length
+    ldr     x7, [x3, #RESP_CAP]        // capacity
+
+    // Check if fits
+    add     x8, x6, x4
+    cmp     x8, x7
+    b.ge    .Lcb_overflow               // doesn't fit, truncate
+
+    // Copy data: memcpy(data + len, src, total)
+    add     x9, x5, x6                 // dest = data + current len
+    // Use our NEON memcpy
+    mov     x10, x0                     // save src
+    mov     x0, x9                      // dest
+    mov     x1, x10                     // src
+    mov     x2, x4                      // count
+    bl      _memcpy_simd
+
+    // Update length
+    adrp    x3, _g_http_resp@PAGE
+    add     x3, x3, _g_http_resp@PAGEOFF
+    ldr     x6, [x3, #RESP_LEN]
+    add     x6, x6, x19
+    str     x6, [x3, #RESP_LEN]
+
+    mov     x0, x19                     // return bytes consumed
+
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
+    ret
+
+.Lcb_overflow:
+    // Copy what fits
+    sub     x4, x7, x6                 // remaining capacity
+    add     x9, x5, x6
+    mov     x10, x0
+    mov     x0, x9
+    mov     x1, x10
+    mov     x2, x4
+    bl      _memcpy_simd
+
+    adrp    x3, _g_http_resp@PAGE
+    add     x3, x3, _g_http_resp@PAGEOFF
+    ldr     x7, [x3, #RESP_CAP]
+    str     x7, [x3, #RESP_LEN]        // len = cap
+
+    mov     x0, x19                     // still return total (curl expects this)
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
+    ret
+
+// ── BSS ──
+.section __DATA,__bss
+.p2align 4
+_g_http_resp:
+    .space  RESP_SIZE
+
+// ── Data ──
+.section __DATA,__const
+.p2align 3
+_str_useragent:
+    .asciz  "AssemblyClaw/0.1.0"
+_str_content_type:
+    .asciz  "Content-Type: application/json"
+_str_auth_fmt:
+    .asciz  "Authorization: %s"

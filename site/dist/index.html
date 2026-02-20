@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssemblyClaw — The world's smallest AI agent infrastructure</title>
+  <meta name="description" content="Pure ARM64 assembly AI agent. < 32 KB binary. < 0.1 ms startup. < 128 KB RAM. Zero dependencies.">
+  <meta property="og:title" content="AssemblyClaw — Pure ARM64 Assembly AI Agent">
+  <meta property="og:description" content="The world's smallest and fastest AI agent infrastructure. < 32 KB binary.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/AssemblyClaw/assets/index-03rLxxGb.js"></script>
+  <link rel="stylesheet" crossorigin href="/AssemblyClaw/assets/index-slTXZkvs.css">
+</head>
+<body>
+
+  <div class="noise-overlay"></div>
+
+  <!-- ═══════════ NAV ═══════════ -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-icon">⌘</span>
+        <span class="logo-text">AssemblyClaw</span>
+      </a>
+      <div class="nav-links">
+        <a href="#benchmark">Benchmark</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/gunta/AssemblyClaw" class="nav-github" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <section class="hero" id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-halftone hero-halftone--left"></div>
+    <div class="hero-halftone hero-halftone--right"></div>
+    <div class="hero-grid-lines"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge reveal">
+        <span class="badge-dot"></span>
+        ARM64 Assembly
+      </div>
+      <h1 class="hero-title reveal">
+        <span class="hero-line">The world's</span>
+        <span class="hero-line hero-line--accent">smallest</span>
+        <span class="hero-line">AI agent.</span>
+      </h1>
+      <p class="hero-sub reveal">
+        Pure ARM64 assembly. Zero dependencies beyond libSystem.<br>
+        Built to prove that assembly is within reach when you have a spec and an AI.
+      </p>
+
+      <div class="hero-stats reveal">
+        <div class="stat">
+          <span class="stat-value" data-target="32">&lt; 32</span>
+          <span class="stat-unit">KB</span>
+          <span class="stat-label">Binary</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-value">&lt; 0.1</span>
+          <span class="stat-unit">ms</span>
+          <span class="stat-label">Startup</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-value">&lt; 128</span>
+          <span class="stat-unit">KB</span>
+          <span class="stat-label">RAM</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-value">0</span>
+          <span class="stat-unit"></span>
+          <span class="stat-label">Dependencies</span>
+        </div>
+      </div>
+
+      <div class="hero-actions reveal">
+        <a href="#install" class="btn btn--primary">
+          <span>Get Started</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="https://x.com/gunta85" target="_blank" rel="noopener" class="btn btn--ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Follow @gunta85
+        </a>
+        <a href="https://guntherbrunner.com" target="_blank" rel="noopener" class="btn btn--ghost">
+          guntherbrunner.com
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-scroll-hint">
+      <span>scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ PROGRESSION ═══════════ -->
+  <section class="progression" id="progression">
+    <div class="section-container">
+      <div class="section-eyebrow reveal">The Story</div>
+      <h2 class="section-title reveal">
+        The natural<br><em>progression.</em>
+      </h2>
+      <p class="section-description reveal">
+        Everyone complains about TypeScript using too much memory.
+        But TS is the fastest way to iterate and get community hooked.
+        Ship value first, then optimize.
+      </p>
+
+      <div class="progression-timeline">
+        <div class="timeline-track"></div>
+        <div class="timeline-step reveal" data-step="1">
+          <div class="step-marker">
+            <span class="step-number">01</span>
+          </div>
+          <div class="step-content">
+            <h3>TypeScript</h3>
+            <p>Ship fast, build community, iterate.</p>
+            <span class="step-size">~28 MB</span>
+          </div>
+        </div>
+        <div class="timeline-step reveal" data-step="2">
+          <div class="step-marker">
+            <span class="step-number">02</span>
+          </div>
+          <div class="step-content">
+            <h3>Zig</h3>
+            <p>Harden it, single binary, zero overhead.</p>
+            <span class="step-size">678 KB</span>
+          </div>
+        </div>
+        <div class="timeline-step reveal" data-step="3">
+          <div class="step-marker">
+            <span class="step-number">03</span>
+          </div>
+          <div class="step-content">
+            <h3>C</h3>
+            <p>Close to metal, portable, proven.</p>
+            <span class="step-size">~100 KB</span>
+          </div>
+        </div>
+        <div class="timeline-step reveal active" data-step="4">
+          <div class="step-marker">
+            <span class="step-number">04</span>
+            <span class="step-pulse"></span>
+          </div>
+          <div class="step-content">
+            <h3>ARM64 Assembly</h3>
+            <p>Absolute minimum, prove the point.</p>
+            <span class="step-size step-size--hero">&lt; 32 KB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ BENCHMARK ═══════════ -->
+  <section class="benchmark" id="benchmark">
+    <div class="benchmark-halftone"></div>
+    <div class="section-container">
+      <div class="section-eyebrow reveal">Benchmarks</div>
+      <h2 class="section-title reveal">
+        Numbers don't<br><em>lie.</em>
+      </h2>
+
+      <div class="benchmark-grid">
+        <!-- Binary Size -->
+        <div class="benchmark-card reveal">
+          <h3 class="benchmark-card-title">Binary Size</h3>
+          <div class="bars">
+            <div class="bar-row">
+              <span class="bar-label">TypeScript</span>
+              <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
+              <span class="bar-value">~28 MB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Zig</span>
+              <div class="bar-track"><div class="bar-fill" data-width="45" data-color="zig"></div></div>
+              <span class="bar-value">678 KB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">C</span>
+              <div class="bar-track"><div class="bar-fill" data-width="25" data-color="c"></div></div>
+              <span class="bar-value">~100 KB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Assembly</span>
+              <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="8" data-color="asm"></div></div>
+              <span class="bar-value bar-value--hero">&lt; 32 KB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAM Usage -->
+        <div class="benchmark-card reveal">
+          <h3 class="benchmark-card-title">RAM Usage</h3>
+          <div class="bars">
+            <div class="bar-row">
+              <span class="bar-label">TypeScript</span>
+              <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
+              <span class="bar-value">&gt; 1 GB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Zig</span>
+              <div class="bar-track"><div class="bar-fill" data-width="30" data-color="zig"></div></div>
+              <span class="bar-value">~1 MB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">C</span>
+              <div class="bar-track"><div class="bar-fill" data-width="20" data-color="c"></div></div>
+              <span class="bar-value">~3 MB</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Assembly</span>
+              <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="6" data-color="asm"></div></div>
+              <span class="bar-value bar-value--hero">&lt; 128 KB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Startup Time -->
+        <div class="benchmark-card reveal">
+          <h3 class="benchmark-card-title">Startup Time</h3>
+          <div class="bars">
+            <div class="bar-row">
+              <span class="bar-label">TypeScript</span>
+              <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
+              <span class="bar-value">&gt; 500 ms</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Zig</span>
+              <div class="bar-track"><div class="bar-fill" data-width="20" data-color="zig"></div></div>
+              <span class="bar-value">&lt; 2 ms</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">C</span>
+              <div class="bar-track"><div class="bar-fill" data-width="15" data-color="c"></div></div>
+              <span class="bar-value">&lt; 5 ms</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Assembly</span>
+              <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="4" data-color="asm"></div></div>
+              <span class="bar-value bar-value--hero">&lt; 0.1 ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cost -->
+        <div class="benchmark-card reveal">
+          <h3 class="benchmark-card-title">Hardware Cost</h3>
+          <div class="bars">
+            <div class="bar-row">
+              <span class="bar-label">TypeScript</span>
+              <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
+              <span class="bar-value">$599</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Zig</span>
+              <div class="bar-track"><div class="bar-fill" data-width="18" data-color="zig"></div></div>
+              <span class="bar-value">$5</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">C</span>
+              <div class="bar-track"><div class="bar-fill" data-width="12" data-color="c"></div></div>
+              <span class="bar-value">$10</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Assembly</span>
+              <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="5" data-color="asm"></div></div>
+              <span class="bar-value bar-value--hero">$1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ARCHITECTURE ═══════════ -->
+  <section class="architecture" id="architecture">
+    <div class="section-container">
+      <div class="section-eyebrow reveal">Under the Hood</div>
+      <h2 class="section-title reveal">
+        Pure silicon<br><em>craftsmanship.</em>
+      </h2>
+      <p class="section-description reveal">
+        Optimized for Apple Silicon M4/M5 Pro/Max. Every instruction chosen with purpose.
+      </p>
+
+      <div class="arch-grid">
+        <div class="arch-features">
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">⚡</div>
+            <h4>NEON SIMD</h4>
+            <p>16 bytes/cycle string scanning with CMEQ + UMAXV vector instructions</p>
+          </div>
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">◎</div>
+            <h4>Cache-Aligned</h4>
+            <p>128-byte alignment tuned for M4 cache lines</p>
+          </div>
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">⎇</div>
+            <h4>Branchless</h4>
+            <p>CSEL/CSETM for conditional operations — no branch prediction misses</p>
+          </div>
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">▦</div>
+            <h4>Arena Allocator</h4>
+            <p>mmap-backed memory, zero fragmentation</p>
+          </div>
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">≡</div>
+            <h4>Zero-Copy Strings</h4>
+            <p>ptr+len views with no NUL terminator overhead</p>
+          </div>
+          <div class="arch-feature reveal">
+            <div class="arch-feature-icon">⊕</div>
+            <h4>Direct Syscalls</h4>
+            <p>libSystem FFI — no libc wrapper tax</p>
+          </div>
+        </div>
+
+        <div class="arch-files reveal">
+          <div class="file-tree">
+            <div class="file-tree-header">
+              <span class="file-tree-folder">src/</span>
+            </div>
+            <div class="file-entry"><span class="file-name">main.s</span><span class="file-desc">CLI entry & argument dispatch</span></div>
+            <div class="file-entry"><span class="file-name">string.s</span><span class="file-desc">NEON SIMD string ops</span></div>
+            <div class="file-entry"><span class="file-name">memory.s</span><span class="file-desc">Arena allocator (mmap)</span></div>
+            <div class="file-entry"><span class="file-name">io.s</span><span class="file-desc">File I/O wrappers</span></div>
+            <div class="file-entry"><span class="file-name">json.s</span><span class="file-desc">Streaming JSON parser</span></div>
+            <div class="file-entry"><span class="file-name">http.s</span><span class="file-desc">HTTPS client (libcurl FFI)</span></div>
+            <div class="file-entry"><span class="file-name">config.s</span><span class="file-desc">Config reader</span></div>
+            <div class="file-entry"><span class="file-name">provider.s</span><span class="file-desc">LLM provider dispatch</span></div>
+            <div class="file-entry"><span class="file-name">agent.s</span><span class="file-desc">Agent loop & history</span></div>
+            <div class="file-entry"><span class="file-name">error.s</span><span class="file-desc">Error codes & messages</span></div>
+            <div class="file-entry"><span class="file-name">version.s</span><span class="file-desc">Version & build info</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ INSTALL ═══════════ -->
+  <section class="install" id="install">
+    <div class="install-halftone"></div>
+    <div class="section-container">
+      <div class="section-eyebrow reveal">Get Started</div>
+      <h2 class="section-title reveal">
+        One command<br><em>away.</em>
+      </h2>
+
+      <div class="install-grid">
+        <div class="install-card reveal">
+          <div class="install-card-header">
+            <span class="install-card-badge">Recommended</span>
+            <h3>Homebrew</h3>
+          </div>
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">brew tap gunta/assemblyclaw</span>
+                <button class="copy-btn" data-copy="brew tap gunta/assemblyclaw" aria-label="Copy command">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">brew install assemblyclaw</span>
+                <button class="copy-btn" data-copy="brew install assemblyclaw" aria-label="Copy command">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-card reveal">
+          <div class="install-card-header">
+            <h3>Build from Source</h3>
+          </div>
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">git clone https://github.com/gunta/AssemblyClaw.git</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">cd AssemblyClaw && make</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">sudo cp build/assemblyclaw /usr/local/bin/</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-card install-card--wide reveal">
+          <div class="install-card-header">
+            <h3>Quick Start</h3>
+          </div>
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-dot"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">assemblyclaw --version</span>
+              </div>
+              <div class="terminal-line terminal-line--output">
+                <span class="terminal-output">assemblyclaw 0.1.0 (arm64-apple-macos)</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-cmd">assemblyclaw agent -m <span class="terminal-string">"Hello from assembly!"</span></span>
+              </div>
+              <div class="terminal-line terminal-line--output">
+                <span class="terminal-output terminal-output--typing" id="typing-output"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ FUTURE ═══════════ -->
+  <section class="future">
+    <div class="section-container">
+      <div class="future-content reveal">
+        <blockquote class="future-quote">
+          Programming languages will keep evolving. <a href="https://github.com/HigherOrderCO/Bend" target="_blank" rel="noopener"><strong>Bend</strong></a> for GPU parallelism.
+          <a href="https://lean-lang.org/" target="_blank" rel="noopener"><strong>Lean 4</strong></a> for zero bugs. And languages we haven't invented yet.
+          <br><br>
+          This project shows that even assembly is within reach when you have a spec and an AI coding agent.
+          <em>Good times to be alive.</em>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SPECIAL THANKS ═══════════ -->
+  <section class="thanks">
+    <div class="section-container">
+      <div class="thanks-card reveal">
+        <div class="thanks-icon">🫡</div>
+        <h3 class="thanks-title">Special Thanks</h3>
+        <p class="thanks-text">
+          To <a href="https://x.com/levelsio" target="_blank" rel="noopener"><strong>Pieter</strong></a>, creator of
+          <a href="https://github.com/nicepkg/openclaw" target="_blank" rel="noopener">OpenClaw</a>,
+          and the entire OpenClaw community.
+        </p>
+        <p class="thanks-disclaimer">
+          Please don't use this. Just use <a href="https://github.com/nicepkg/openclaw" target="_blank" rel="noopener">OpenClaw</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="footer-halftone"></div>
+    <div class="section-container">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <span class="footer-logo">⌘ AssemblyClaw</span>
+          <span class="footer-license">MIT License</span>
+        </div>
+        <div class="footer-right">
+          <a href="https://github.com/gunta/AssemblyClaw" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://x.com/gunta85" target="_blank" rel="noopener">@gunta85</a>
+          <a href="https://guntherbrunner.com" target="_blank" rel="noopener">guntherbrunner.com</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>Built with pure ARM64 assembly. Designed with Paper.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

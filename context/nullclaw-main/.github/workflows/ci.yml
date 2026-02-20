@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig 0.15.2
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Cache .zig-cache
+        uses: actions/cache@v4
+        with:
+          path: .zig-cache
+          key: zig-${{ matrix.os }}-${{ hashFiles('src/**/*.zig', 'build.zig') }}
+          restore-keys: zig-${{ matrix.os }}-
+
+      - name: Run tests
+        run: zig build test --summary all 2>&1 | tee test-output.txt
+
+      - name: Build ReleaseSmall
+        run: zig build -Doptimize=ReleaseSmall
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## nullClaw CI — ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f test-output.txt ]; then
+            TESTS=$(grep -o '[0-9]*/[0-9]* tests passed' test-output.txt | head -1 || true)
+            RSS=$(grep 'run test' test-output.txt | grep -o 'MaxRSS:[^ ]*' | head -1 | cut -d: -f2 || true)
+            echo "| Tests | ${TESTS:-—} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Test MaxRSS | ${RSS:-—} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -f zig-out/bin/nullclaw ]; then
+            SIZE=$(wc -c < zig-out/bin/nullclaw | tr -d ' ')
+            SIZE_HR=$(awk "BEGIN {printf \"%.1f MB\", $SIZE / 1048576}")
+            echo "| Binary (ReleaseSmall) | ${SIZE_HR} (${SIZE} bytes) |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload binary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nullclaw-${{ matrix.os == 'ubuntu-latest' && 'linux-x86_64' || 'macos-aarch64' }}
+          path: zig-out/bin/nullclaw

@@ -1,0 +1,489 @@
+const std = @import("std");
+const root = @import("root.zig");
+const Tool = root.Tool;
+const ToolResult = root.ToolResult;
+const JsonObjectMap = root.JsonObjectMap;
+
+/// Default maximum file size to read for editing (10MB).
+const DEFAULT_MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
+
+/// System-critical prefixes — always blocked even if they match allowed_paths.
+pub const SYSTEM_BLOCKED_PREFIXES = [_][]const u8{
+    "/System",
+    "/Library",
+    "/bin",
+    "/sbin",
+    "/usr/bin",
+    "/usr/sbin",
+    "/usr/lib",
+    "/usr/libexec",
+    "/etc",
+    "/private/etc",
+    "/private/var",
+    "/dev",
+    "/boot",
+    "/proc",
+    "/sys",
+};
+
+/// Check whether a directory-style prefix matches (exact or followed by '/').
+fn pathStartsWith(path: []const u8, prefix: []const u8) bool {
+    if (!std.mem.startsWith(u8, path, prefix)) return false;
+    return path.len == prefix.len or path[prefix.len] == '/';
+}
+
+/// Check whether a **resolved** absolute path is allowed by the policy:
+///  1. System blocklist always rejects.
+///  2. Workspace prefix matches → allowed.
+///  3. Any allowed_path prefix matches (resolved on the fly) → allowed.
+pub fn isResolvedPathAllowed(
+    allocator: std.mem.Allocator,
+    resolved: []const u8,
+    ws_resolved: []const u8,
+    allowed_paths: []const []const u8,
+) bool {
+    // 1. System blocklist
+    for (&SYSTEM_BLOCKED_PREFIXES) |prefix| {
+        if (pathStartsWith(resolved, prefix)) return false;
+    }
+    // 2. Workspace
+    if (pathStartsWith(resolved, ws_resolved)) return true;
+    // 3. Allowed paths (resolve each to handle symlinks)
+    for (allowed_paths) |ap| {
+        const ap_resolved = std.fs.cwd().realpathAlloc(allocator, ap) catch continue;
+        defer allocator.free(ap_resolved);
+        if (pathStartsWith(resolved, ap_resolved)) return true;
+    }
+    return false;
+}
+
+/// Find and replace text in a file with workspace path scoping.
+pub const FileEditTool = struct {
+    workspace_dir: []const u8,
+    allowed_paths: []const []const u8 = &.{},
+    max_file_size: usize = DEFAULT_MAX_FILE_SIZE,
+
+    const vtable = Tool.VTable{
+        .execute = &vtableExecute,
+        .name = &vtableName,
+        .description = &vtableDesc,
+        .parameters_json = &vtableParams,
+    };
+
+    pub fn tool(self: *FileEditTool) Tool {
+        return .{
+            .ptr = @ptrCast(self),
+            .vtable = &vtable,
+        };
+    }
+
+    fn vtableExecute(ptr: *anyopaque, allocator: std.mem.Allocator, args: JsonObjectMap) anyerror!ToolResult {
+        const self: *FileEditTool = @ptrCast(@alignCast(ptr));
+        return self.execute(allocator, args);
+    }
+
+    fn vtableName(_: *anyopaque) []const u8 {
+        return "file_edit";
+    }
+
+    fn vtableDesc(_: *anyopaque) []const u8 {
+        return "Find and replace text in a file";
+    }
+
+    fn vtableParams(_: *anyopaque) []const u8 {
+        return 
+        \\{"type":"object","properties":{"path":{"type":"string","description":"Relative path to the file within the workspace"},"old_text":{"type":"string","description":"Text to find in the file"},"new_text":{"type":"string","description":"Replacement text"}},"required":["path","old_text","new_text"]}
+        ;
+    }
+
+    fn execute(self: *FileEditTool, allocator: std.mem.Allocator, args: JsonObjectMap) !ToolResult {
+        const path = root.getString(args, "path") orelse
+            return ToolResult.fail("Missing 'path' parameter");
+
+        const old_text = root.getString(args, "old_text") orelse
+            return ToolResult.fail("Missing 'old_text' parameter");
+
+        const new_text = root.getString(args, "new_text") orelse
+            return ToolResult.fail("Missing 'new_text' parameter");
+
+        // Build full path — absolute or relative
+        const full_path = if (path.len > 0 and path[0] == '/') blk: {
+            if (self.allowed_paths.len == 0)
+                return ToolResult.fail("Absolute paths not allowed (no allowed_paths configured)");
+            if (std.mem.indexOfScalar(u8, path, 0) != null)
+                return ToolResult.fail("Path contains null bytes");
+            break :blk try allocator.dupe(u8, path);
+        } else blk: {
+            if (!isPathSafe(path))
+                return ToolResult.fail("Path not allowed: contains traversal or absolute path");
+            break :blk try std.fs.path.join(allocator, &.{ self.workspace_dir, path });
+        };
+        defer allocator.free(full_path);
+
+        // Resolve to catch symlink escapes
+        const resolved = std.fs.cwd().realpathAlloc(allocator, full_path) catch |err| {
+            const msg = try std.fmt.allocPrint(allocator, "Failed to resolve file path: {}", .{err});
+            return ToolResult{ .success = false, .output = "", .error_msg = msg };
+        };
+        defer allocator.free(resolved);
+
+        // Validate against workspace + allowed_paths + system blocklist
+        const ws_resolved: ?[]const u8 = std.fs.cwd().realpathAlloc(allocator, self.workspace_dir) catch null;
+        defer if (ws_resolved) |wr| allocator.free(wr);
+
+        if (!isResolvedPathAllowed(allocator, resolved, ws_resolved orelse "", self.allowed_paths)) {
+            return ToolResult.fail("Path is outside allowed areas");
+        }
+
+        // Read existing file contents
+        const file_r = std.fs.openFileAbsolute(resolved, .{}) catch |err| {
+            const msg = try std.fmt.allocPrint(allocator, "Failed to open file: {}", .{err});
+            return ToolResult{ .success = false, .output = "", .error_msg = msg };
+        };
+        const contents = file_r.readToEndAlloc(allocator, self.max_file_size) catch |err| {
+            file_r.close();
+            const msg = try std.fmt.allocPrint(allocator, "Failed to read file: {}", .{err});
+            return ToolResult{ .success = false, .output = "", .error_msg = msg };
+        };
+        file_r.close();
+        defer allocator.free(contents);
+
+        // old_text must not be empty
+        if (old_text.len == 0) {
+            return ToolResult.fail("old_text must not be empty");
+        }
+
+        // Find first occurrence of old_text
+        const pos = std.mem.indexOf(u8, contents, old_text) orelse {
+            return ToolResult.fail("old_text not found in file");
+        };
+
+        // Build new contents: before + new_text + after
+        const before = contents[0..pos];
+        const after = contents[pos + old_text.len ..];
+        const new_contents = try std.mem.concat(allocator, u8, &.{ before, new_text, after });
+        defer allocator.free(new_contents);
+
+        // Write back
+        const file_w = std.fs.createFileAbsolute(resolved, .{ .truncate = true }) catch |err| {
+            const msg = try std.fmt.allocPrint(allocator, "Failed to write file: {}", .{err});
+            return ToolResult{ .success = false, .output = "", .error_msg = msg };
+        };
+        defer file_w.close();
+
+        file_w.writeAll(new_contents) catch |err| {
+            const msg = try std.fmt.allocPrint(allocator, "Failed to write file: {}", .{err});
+            return ToolResult{ .success = false, .output = "", .error_msg = msg };
+        };
+
+        const msg = try std.fmt.allocPrint(allocator, "Replaced {d} bytes with {d} bytes in {s}", .{ old_text.len, new_text.len, path });
+        return ToolResult{ .success = true, .output = msg };
+    }
+};
+
+/// Check if a relative path is safe (no traversal, no absolute path).
+pub fn isPathSafe(path: []const u8) bool {
+    if (path.len > 0 and path[0] == '/') return false;
+    if (std.mem.indexOfScalar(u8, path, 0) != null) return false;
+    var iter = std.mem.splitScalar(u8, path, '/');
+    while (iter.next()) |component| {
+        if (std.mem.eql(u8, component, "..")) return false;
+    }
+    return true;
+}
+
+// ── Tests ───────────────────────────────────────────────────────────
+
+test "file_edit tool name" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    try std.testing.expectEqualStrings("file_edit", t.name());
+}
+
+test "file_edit tool schema has required params" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    const schema = t.parametersJson();
+    try std.testing.expect(std.mem.indexOf(u8, schema, "path") != null);
+    try std.testing.expect(std.mem.indexOf(u8, schema, "old_text") != null);
+    try std.testing.expect(std.mem.indexOf(u8, schema, "new_text") != null);
+}
+
+test "file_edit basic replace" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "test.txt", .data = "hello world" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+
+    var ft = FileEditTool{ .workspace_dir = ws_path };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"test.txt\", \"old_text\": \"world\", \"new_text\": \"zig\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    defer if (result.error_msg) |e| std.testing.allocator.free(e);
+
+    try std.testing.expect(result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.output, "Replaced") != null);
+
+    // Verify file contents
+    const actual = try tmp_dir.dir.readFileAlloc(std.testing.allocator, "test.txt", 1024);
+    defer std.testing.allocator.free(actual);
+    try std.testing.expectEqualStrings("hello zig", actual);
+}
+
+test "file_edit old_text not found" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "test.txt", .data = "hello world" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+
+    var ft = FileEditTool{ .workspace_dir = ws_path };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"test.txt\", \"old_text\": \"missing\", \"new_text\": \"replacement\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+
+    try std.testing.expect(!result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.error_msg.?, "not found") != null);
+}
+
+test "file_edit empty file returns not found" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "empty.txt", .data = "" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+
+    var ft = FileEditTool{ .workspace_dir = ws_path };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"empty.txt\", \"old_text\": \"something\", \"new_text\": \"other\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+
+    try std.testing.expect(!result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.error_msg.?, "not found") != null);
+}
+
+test "file_edit replaces only first occurrence" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "dup.txt", .data = "aaa bbb aaa" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+
+    var ft = FileEditTool{ .workspace_dir = ws_path };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"dup.txt\", \"old_text\": \"aaa\", \"new_text\": \"ccc\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    defer if (result.error_msg) |e| std.testing.allocator.free(e);
+
+    try std.testing.expect(result.success);
+
+    const actual = try tmp_dir.dir.readFileAlloc(std.testing.allocator, "dup.txt", 1024);
+    defer std.testing.allocator.free(actual);
+    try std.testing.expectEqualStrings("ccc bbb aaa", actual);
+}
+
+test "file_edit blocks path traversal" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp/workspace" };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"../../etc/evil\", \"old_text\": \"a\", \"new_text\": \"b\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+    try std.testing.expect(!result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.error_msg.?, "not allowed") != null);
+}
+
+test "file_edit missing path param" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"old_text\": \"a\", \"new_text\": \"b\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+    try std.testing.expect(!result.success);
+}
+
+test "file_edit missing old_text param" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"file.txt\", \"new_text\": \"b\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+    try std.testing.expect(!result.success);
+}
+
+test "file_edit missing new_text param" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"file.txt\", \"old_text\": \"a\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+    try std.testing.expect(!result.success);
+}
+
+test "file_edit empty old_text" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "test.txt", .data = "content" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+
+    var ft = FileEditTool{ .workspace_dir = ws_path };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"test.txt\", \"old_text\": \"\", \"new_text\": \"new\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    // error_msg is a static string from ToolResult.fail(), don't free it
+
+    try std.testing.expect(!result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.error_msg.?, "must not be empty") != null);
+}
+
+// ── isResolvedPathAllowed tests ─────────────────────────────────────
+
+test "isResolvedPathAllowed allows workspace path" {
+    try std.testing.expect(isResolvedPathAllowed(
+        std.testing.allocator,
+        "/home/user/workspace/file.txt",
+        "/home/user/workspace",
+        &.{},
+    ));
+}
+
+test "isResolvedPathAllowed allows exact workspace" {
+    try std.testing.expect(isResolvedPathAllowed(
+        std.testing.allocator,
+        "/home/user/workspace",
+        "/home/user/workspace",
+        &.{},
+    ));
+}
+
+test "isResolvedPathAllowed rejects outside workspace" {
+    try std.testing.expect(!isResolvedPathAllowed(
+        std.testing.allocator,
+        "/home/user/other/file.txt",
+        "/home/user/workspace",
+        &.{},
+    ));
+}
+
+test "isResolvedPathAllowed rejects partial prefix match" {
+    // /home/user/workspace-evil should NOT match /home/user/workspace
+    try std.testing.expect(!isResolvedPathAllowed(
+        std.testing.allocator,
+        "/home/user/workspace-evil/file.txt",
+        "/home/user/workspace",
+        &.{},
+    ));
+}
+
+test "isResolvedPathAllowed blocks system paths" {
+    try std.testing.expect(!isResolvedPathAllowed(
+        std.testing.allocator,
+        "/etc/passwd",
+        "/etc",
+        &.{},
+    ));
+    try std.testing.expect(!isResolvedPathAllowed(
+        std.testing.allocator,
+        "/System/Library/something",
+        "/home/ws",
+        &.{"/System"},
+    ));
+    try std.testing.expect(!isResolvedPathAllowed(
+        std.testing.allocator,
+        "/bin/sh",
+        "/home/ws",
+        &.{"/bin"},
+    ));
+}
+
+test "isResolvedPathAllowed allows via allowed_paths" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    const tmp_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(tmp_path);
+
+    try tmp_dir.dir.writeFile(.{ .sub_path = "test.txt", .data = "" });
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ tmp_path, "test.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    try std.testing.expect(isResolvedPathAllowed(
+        std.testing.allocator,
+        file_path,
+        "/nonexistent-workspace",
+        &.{tmp_path},
+    ));
+}
+
+test "pathStartsWith exact match" {
+    try std.testing.expect(pathStartsWith("/foo/bar", "/foo/bar"));
+}
+
+test "pathStartsWith with trailing component" {
+    try std.testing.expect(pathStartsWith("/foo/bar/baz", "/foo/bar"));
+}
+
+test "pathStartsWith rejects partial" {
+    try std.testing.expect(!pathStartsWith("/foo/barbaz", "/foo/bar"));
+}
+
+// ── Absolute path support tests ─────────────────────────────────────
+
+test "file_edit absolute path without allowed_paths is rejected" {
+    var ft = FileEditTool{ .workspace_dir = "/tmp" };
+    const t = ft.tool();
+    const parsed = try root.parseTestArgs("{\"path\": \"/tmp/file.txt\", \"old_text\": \"a\", \"new_text\": \"b\"}");
+    defer parsed.deinit();
+    const result = try t.execute(std.testing.allocator, parsed.value.object);
+    try std.testing.expect(!result.success);
+    try std.testing.expect(std.mem.indexOf(u8, result.error_msg.?, "Absolute paths not allowed") != null);
+}
+
+test "file_edit absolute path with allowed_paths works" {
+    var tmp_dir = std.testing.tmpDir(.{});
+    defer tmp_dir.cleanup();
+    try tmp_dir.dir.writeFile(.{ .sub_path = "test.txt", .data = "hello world" });
+
+    const ws_path = try tmp_dir.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(ws_path);
+    const abs_file = try std.fs.path.join(std.testing.allocator, &.{ ws_path, "test.txt" });
+    defer std.testing.allocator.free(abs_file);
+
+    // Use a different workspace but allow tmp_dir via allowed_paths
+    var args_buf: [512]u8 = undefined;
+    const args = try std.fmt.bufPrint(&args_buf, "{{\"path\": \"{s}\", \"old_text\": \"world\", \"new_text\": \"zig\"}}", .{abs_file});
+    const parsed = try root.parseTestArgs(args);
+    defer parsed.deinit();
+
+    var ft = FileEditTool{ .workspace_dir = "/nonexistent", .allowed_paths = &.{ws_path} };
+    const result = try ft.execute(std.testing.allocator, parsed.value.object);
+    defer if (result.output.len > 0) std.testing.allocator.free(result.output);
+    defer if (result.error_msg) |e| std.testing.allocator.free(e);
+
+    try std.testing.expect(result.success);
+
+    const actual = try tmp_dir.dir.readFileAlloc(std.testing.allocator, "test.txt", 1024);
+    defer std.testing.allocator.free(actual);
+    try std.testing.expectEqualStrings("hello zig", actual);
+}
