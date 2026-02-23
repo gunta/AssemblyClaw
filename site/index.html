@@ -89,12 +89,9 @@
           <span>Get Started</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a href="https://x.com/gunta85" target="_blank" rel="noopener" class="btn btn--ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          Follow @gunta85
-        </a>
-        <a href="https://guntherbrunner.com" target="_blank" rel="noopener" class="btn btn--ghost">
-          guntherbrunner.com
+        <a href="https://github.com/gunta/AssemblyClaw" target="_blank" rel="noopener" class="btn btn--ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          View Source
         </a>
       </div>
     </div>
@@ -304,34 +301,47 @@
               <span class="bar-value bar-value--hero">$1.50</span>
             </div>
           </div>
-          <div class="hw-details">
-            <div class="hw-detail-row hw-detail-row--ts">
-              <span class="hw-detail-label">TS</span>
-              <div class="hw-detail-info">
-                <a href="https://www.apple.com/shop/buy-mac/mac-mini" target="_blank" rel="noopener"><strong>Mac Mini M4</strong></a> — Apple M4, 16 GB RAM, macOS 15
-                <span class="hw-detail-sub">OpenClaw requires macOS 13+ and Node.js 22+, minimum 8 GB RAM. The Mac Mini is the cheapest Mac available. <a href="https://prices.appleinsider.com/mac-mini-m4" target="_blank" rel="noopener">$499 on sale</a></span>
+        </div>
+
+        <div class="benchmark-card benchmark-card--hw-section reveal" style="grid-column: 1 / -1;">
+          <h3 class="benchmark-card-title">Cheapest Hardware It Can Run On</h3>
+          <p class="hw-section-subtitle">The cheapest, smallest hardware each implementation can realistically run on.</p>
+          <div class="hw-cards">
+            <div class="hw-card hw-card--ts">
+              <div class="hw-card-header">
+                <span class="hw-card-lang">TS</span>
+                <span class="hw-card-price">$499</span>
               </div>
+              <a href="https://www.apple.com/shop/buy-mac/mac-mini" target="_blank" rel="noopener" class="hw-card-name">Mac Mini M4</a>
+              <p class="hw-card-specs">Apple M4, 16 GB RAM, macOS 15</p>
+              <p class="hw-card-reason">OpenClaw requires macOS 13+ and Node.js 22+, minimum 8 GB RAM. The Mac Mini is the cheapest Mac available.</p>
             </div>
-            <div class="hw-detail-row hw-detail-row--zig">
-              <span class="hw-detail-label">Zig</span>
-              <div class="hw-detail-info">
-                <a href="https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/" target="_blank" rel="noopener"><strong>Raspberry Pi Zero 2 W</strong></a> — ARM Cortex-A53 1 GHz, 512 MB RAM, WiFi
-                <span class="hw-detail-sub">NullClaw is a 678 KB static binary using ~1 MB RAM. The Pi Zero 2 W runs it without issues. <a href="https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/" target="_blank" rel="noopener">$15 MSRP</a></span>
+            <div class="hw-card hw-card--zig">
+              <div class="hw-card-header">
+                <span class="hw-card-lang">Zig</span>
+                <span class="hw-card-price">$15</span>
               </div>
+              <a href="https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/" target="_blank" rel="noopener" class="hw-card-name">Raspberry Pi Zero 2 W</a>
+              <p class="hw-card-specs">ARM Cortex-A53 1 GHz, 512 MB RAM, WiFi</p>
+              <p class="hw-card-reason">NullClaw is a 678 KB static binary using ~1 MB RAM. The Pi Zero 2 W runs it without issues.</p>
             </div>
-            <div class="hw-detail-row hw-detail-row--c">
-              <span class="hw-detail-label">C</span>
-              <div class="hw-detail-info">
-                <a href="https://milkv.io/duo" target="_blank" rel="noopener"><strong>Milk-V Duo</strong></a> — RISC-V C906 1 GHz, 64 MB RAM, Linux
-                <span class="hw-detail-sub">CClaw is a ~143 KB C binary with libcurl. The Milk-V Duo runs full Linux with curl/TLS out of the box. <a href="https://milkv.io/duo" target="_blank" rel="noopener">$9 MSRP</a></span>
+            <div class="hw-card hw-card--c">
+              <div class="hw-card-header">
+                <span class="hw-card-lang">C</span>
+                <span class="hw-card-price">$9</span>
               </div>
+              <a href="https://milkv.io/duo" target="_blank" rel="noopener" class="hw-card-name">Milk-V Duo</a>
+              <p class="hw-card-specs">RISC-V C906 1 GHz, 64 MB RAM, Linux</p>
+              <p class="hw-card-reason">CClaw is a ~143 KB C binary with libcurl. The Milk-V Duo runs full Linux with curl/TLS out of the box.</p>
             </div>
-            <div class="hw-detail-row hw-detail-row--asm">
-              <span class="hw-detail-label">ASM</span>
-              <div class="hw-detail-info">
-                <a href="https://www.aliexpress.com/w/wholesale-esp32-c3.html" target="_blank" rel="noopener"><strong>ESP32-C3 Super Mini</strong></a> — RISC-V 160 MHz, 400 KB RAM, WiFi + BLE 5
-                <span class="hw-detail-sub">Bare-metal RISC-V with native TLS via ESP-IDF/mbedTLS. <a href="https://www.aliexpress.com/w/wholesale-esp32-c3.html" target="_blank" rel="noopener">~$1.50 on AliExpress</a> · as low as $1.00/unit in 100+ lots</span>
+            <div class="hw-card hw-card--asm">
+              <div class="hw-card-header">
+                <span class="hw-card-lang">ASM</span>
+                <span class="hw-card-price">~$1.50</span>
               </div>
+              <a href="https://www.aliexpress.com/w/wholesale-esp32-c3.html" target="_blank" rel="noopener" class="hw-card-name">ESP32-C3 Super Mini</a>
+              <p class="hw-card-specs">RISC-V 160 MHz, 400 KB RAM, WiFi + BLE 5</p>
+              <p class="hw-card-reason">Bare-metal RISC-V with native TLS via ESP-IDF/mbedTLS. As low as $1.00/unit in 100+ lots.</p>
             </div>
           </div>
           <div class="hw-cost-prompt-wrap">
@@ -486,8 +496,8 @@
             <div class="terminal-body">
               <div class="terminal-line">
                 <span class="terminal-prompt">$</span>
-                <span class="terminal-cmd">brew install --HEAD gunta/assemblyclaw/assemblyclaw</span>
-                <button class="copy-btn" data-copy="brew install --HEAD gunta/assemblyclaw/assemblyclaw" aria-label="Copy command">
+                <span class="terminal-cmd">brew install gunta/assemblyclaw/assemblyclaw</span>
+                <button class="copy-btn" data-copy="brew install gunta/assemblyclaw/assemblyclaw" aria-label="Copy command">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                 </button>
               </div>
@@ -560,11 +570,38 @@
   <section class="future">
     <div class="section-container">
       <div class="future-content reveal">
+        <p class="future-intro">Programming languages will keep evolving. Every one of these is a prompt away from becoming an AI agent.</p>
+
+        <div class="future-langs">
+          <a href="https://gleam.run/" target="_blank" rel="noopener" class="future-lang-card">
+            <span class="future-lang-name">Gleam</span>
+            <span class="future-lang-tag">BEAM VM</span>
+            <span class="future-lang-desc">Type-safe Erlang. Runs on the battle-tested VM behind WhatsApp — fault-tolerant, concurrent, and now with static types. Compiles to Erlang or JavaScript.</span>
+          </a>
+          <a href="https://github.com/HigherOrderCO/Bend" target="_blank" rel="noopener" class="future-lang-card">
+            <span class="future-lang-name">Bend</span>
+            <span class="future-lang-tag">GPU-native</span>
+            <span class="future-lang-desc">Writes like Python, runs like CUDA. Your code auto-parallelizes across thousands of GPU threads — no manual thread management.</span>
+          </a>
+          <a href="https://lean-lang.org/" target="_blank" rel="noopener" class="future-lang-card">
+            <span class="future-lang-name">Lean 4</span>
+            <span class="future-lang-tag">Provable</span>
+            <span class="future-lang-desc">A language where you can mathematically prove your code is correct. Used by DeepMind's AlphaProof to solve Math Olympiad problems.</span>
+          </a>
+          <a href="https://ziglang.org/" target="_blank" rel="noopener" class="future-lang-card">
+            <span class="future-lang-name">Zig</span>
+            <span class="future-lang-tag">Systems</span>
+            <span class="future-lang-desc">Modern C without the footguns. No hidden allocations, no garbage collector, seamless cross-compilation. Already used in production at Uber and Cloudflare.</span>
+          </a>
+          <div class="future-lang-card future-lang-card--mystery">
+            <span class="future-lang-name">???</span>
+            <span class="future-lang-tag">2027</span>
+            <span class="future-lang-desc">And languages we haven't invented yet. The best tools for building AI agents may not exist today.</span>
+          </div>
+        </div>
+
         <blockquote class="future-quote">
-          Programming languages will keep evolving. <a href="https://github.com/HigherOrderCO/Bend" target="_blank" rel="noopener"><strong>Bend</strong></a> for GPU parallelism.
-          <a href="https://lean-lang.org/" target="_blank" rel="noopener"><strong>Lean 4</strong></a> for zero bugs. And languages we haven't invented yet.
-          <br><br>
-          This project shows that even assembly is within reach when you have a spec and an AI coding agent.
+          This project shows that even assembly — the lowest-level language — is within reach when you have a spec and an AI coding agent.
           <em>Good times to be alive.</em>
         </blockquote>
       </div>
@@ -585,6 +622,45 @@
         <p class="thanks-disclaimer">
           Please don't use this. Just use <a href="https://github.com/nicepkg/openclaw" target="_blank" rel="noopener">OpenClaw</a>.
         </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ AUTHOR ═══════════ -->
+  <section class="author" id="author">
+    <div class="section-container">
+      <div class="author-card reveal">
+        <div class="author-intro">
+          <div class="author-eyebrow">Built by</div>
+          <h2 class="author-name">Gunther Brunner</h2>
+          <p class="author-tagline">Design Engineer &middot; Tokyo</p>
+        </div>
+        <div class="author-bio">
+          <p>
+            I'm a design engineer based in Tokyo since 2007. I build things at the intersection of
+            precision engineering and creative product design &mdash; from open-source tools used by
+            hundreds of companies to AI agent infrastructure written in pure assembly.
+          </p>
+          <p>
+            Previously created <strong>OpenSTF</strong> (13k+ GitHub stars, adopted by Netflix, Alibaba, and Google).
+            Currently shipping AI products at CyberAgent and running <strong>G Productions</strong>,
+            a studio focused on design systems and fractional engineering.
+          </p>
+        </div>
+        <div class="author-cta">
+          <a href="https://guntherbrunner.com" target="_blank" rel="noopener" class="btn btn--primary">
+            <span>guntherbrunner.com</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="https://x.com/gunta85" target="_blank" rel="noopener" class="btn btn--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            @gunta85
+          </a>
+          <a href="https://github.com/gunta" target="_blank" rel="noopener" class="btn btn--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            @gunta
+          </a>
+        </div>
       </div>
     </div>
   </section>

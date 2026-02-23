@@ -26,24 +26,51 @@ jobs:
           files: assemblyclaw-macos-arm64
           generate_release_notes: true
 
-      - name: Update Homebrew formula
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          set -euo pipefail
+
           TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
           TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/${TAG}.tar.gz"
 
           # Download tarball and compute SHA256
           curl -sL "$TARBALL_URL" -o source.tar.gz
           SHA256=$(shasum -a 256 source.tar.gz | awk '{print $1}')
 
-          # Update formula
-          sed -i '' "s|url \".*\"|url \"${TARBALL_URL}\"|" Formula/assemblyclaw.rb
+          echo "Tag:     ${TAG}"
+          echo "URL:     ${TARBALL_URL}"
+          echo "SHA256:  ${SHA256}"
+
+          # ── Update formula in this repo ──
+          sed -i '' "s|url \".*\.tar\.gz\"|url \"${TARBALL_URL}\"|" Formula/assemblyclaw.rb
           sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/assemblyclaw.rb
 
-          # Commit and push to main
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout main
           git add Formula/assemblyclaw.rb
-          git commit -m "formula: update to ${TAG}" || exit 0
-          git push origin main
+          if ! git diff --cached --quiet; then
+            git commit -m "formula: update to ${TAG}"
+            git push origin main
+          fi
+
+          # ── Update formula in the Homebrew tap repo ──
+          if [ -z "${TAP_TOKEN:-}" ]; then
+            echo "⚠ HOMEBREW_TAP_TOKEN not set — skipping tap update"
+            exit 0
+          fi
+
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/gunta/homebrew-assemblyclaw.git" /tmp/tap
+          cp Formula/assemblyclaw.rb /tmp/tap/Formula/assemblyclaw.rb
+          cd /tmp/tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/assemblyclaw.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "assemblyclaw ${TAG}"
+            git push origin main
+          fi
+
+          echo "✓ Homebrew tap updated"
