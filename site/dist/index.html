@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/AssemblyClaw/assets/index-03rLxxGb.js"></script>
-  <link rel="stylesheet" crossorigin href="/AssemblyClaw/assets/index-slTXZkvs.css">
+  <script type="module" crossorigin src="/AssemblyClaw/assets/index-heLNBEvx.js"></script>
+  <link rel="stylesheet" crossorigin href="/AssemblyClaw/assets/index-DIMkslWW.css">
 </head>
 <body>
 
@@ -175,6 +175,29 @@
         Numbers don't<br><em>lie.</em>
       </h2>
 
+      <div class="cost-speed reveal">
+        <div class="cost-speed-head">
+          <h3>Cost vs Startup Speed</h3>
+          <p>Lower-left wins. Points use a log-like placement so extremes are still readable.</p>
+        </div>
+        <div class="cost-speed-plot" aria-label="Cost vs startup speed scatter plot">
+          <div class="cost-speed-point cost-speed-point--ts" style="--x: 96; --y: 92;">
+            <span>TS</span>
+          </div>
+          <div class="cost-speed-point cost-speed-point--zig" style="--x: 32; --y: 28;">
+            <span>Zig</span>
+          </div>
+          <div class="cost-speed-point cost-speed-point--c" style="--x: 40; --y: 36;">
+            <span>C</span>
+          </div>
+          <div class="cost-speed-point cost-speed-point--asm" style="--x: 10; --y: 8;">
+            <span>ASM</span>
+          </div>
+          <span class="cost-speed-label cost-speed-label--x">Cost (USD) →</span>
+          <span class="cost-speed-label cost-speed-label--y">Startup (ms) →</span>
+        </div>
+      </div>
+
       <div class="benchmark-grid">
         <!-- Binary Size -->
         <div class="benchmark-card reveal">
@@ -241,12 +264,12 @@
             </div>
             <div class="bar-row">
               <span class="bar-label">Zig</span>
-              <div class="bar-track"><div class="bar-fill" data-width="20" data-color="zig"></div></div>
+              <div class="bar-track"><div class="bar-fill" data-width="18" data-color="zig"></div></div>
               <span class="bar-value">&lt; 2 ms</span>
             </div>
             <div class="bar-row">
               <span class="bar-label">C</span>
-              <div class="bar-track"><div class="bar-fill" data-width="15" data-color="c"></div></div>
+              <div class="bar-track"><div class="bar-fill" data-width="25" data-color="c"></div></div>
               <span class="bar-value">&lt; 5 ms</span>
             </div>
             <div class="bar-row">
@@ -268,12 +291,12 @@
             </div>
             <div class="bar-row">
               <span class="bar-label">Zig</span>
-              <div class="bar-track"><div class="bar-fill" data-width="18" data-color="zig"></div></div>
+              <div class="bar-track"><div class="bar-fill" data-width="25" data-color="zig"></div></div>
               <span class="bar-value">$5</span>
             </div>
             <div class="bar-row">
               <span class="bar-label">C</span>
-              <div class="bar-track"><div class="bar-fill" data-width="12" data-color="c"></div></div>
+              <div class="bar-track"><div class="bar-fill" data-width="36" data-color="c"></div></div>
               <span class="bar-value">$10</span>
             </div>
             <div class="bar-row">
@@ -478,7 +501,7 @@
         <div class="thanks-icon">🫡</div>
         <h3 class="thanks-title">Special Thanks</h3>
         <p class="thanks-text">
-          To <a href="https://x.com/levelsio" target="_blank" rel="noopener"><strong>Pieter</strong></a>, creator of
+          To <a href="https://x.com/steipete" target="_blank" rel="noopener"><strong>Peter Steinberger</strong></a>, creator of
           <a href="https://github.com/nicepkg/openclaw" target="_blank" rel="noopener">OpenClaw</a>,
           and the entire OpenClaw community.
         </p>

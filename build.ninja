@@ -1,0 +1,107 @@
+# AssemblyClaw — ARM64 macOS Assembly
+#
+# ninja                  Release build (optimized, stripped)
+# ninja debug            Debug build (with symbols)
+# ninja test             Run full functional test suite
+# ninja bench            Run benchmark suite
+# ninja -t clean         Remove all build outputs
+
+builddir = build
+
+# ── Rules ──
+
+rule as
+  command = clang -arch arm64 -c -o $out $in
+  description = AS $in
+
+rule as_debug
+  command = clang -arch arm64 -c -g -o $out $in
+  description = AS $in [debug]
+
+rule link_strip
+  command = clang -arch arm64 -lcurl -Wl,-dead_strip -o $out $in && strip -x $out
+  description = LINK+STRIP $out
+
+rule link_debug
+  command = clang -arch arm64 -lcurl -o $out $in
+  description = LINK $out
+
+rule run
+  command = $cmd
+  pool = console
+
+# ── Release objects ──
+
+build build/version.o: as src/version.s
+build build/error.o: as src/error.s
+build build/varargs.o: as src/varargs.s
+build build/string.o: as src/string.s
+build build/memory.o: as src/memory.s
+build build/io.o: as src/io.s
+build build/json.o: as src/json.s
+build build/http.o: as src/http.s
+build build/config.o: as src/config.s
+build build/provider.o: as src/provider.s
+build build/agent.o: as src/agent.s
+build build/main.o: as src/main.s
+
+build build/assemblyclaw: link_strip $
+  build/version.o $
+  build/error.o $
+  build/varargs.o $
+  build/string.o $
+  build/memory.o $
+  build/io.o $
+  build/json.o $
+  build/http.o $
+  build/config.o $
+  build/provider.o $
+  build/agent.o $
+  build/main.o
+
+default build/assemblyclaw
+
+# ── Debug ──
+
+build build/debug/version.o: as_debug src/version.s
+build build/debug/error.o: as_debug src/error.s
+build build/debug/varargs.o: as_debug src/varargs.s
+build build/debug/string.o: as_debug src/string.s
+build build/debug/memory.o: as_debug src/memory.s
+build build/debug/io.o: as_debug src/io.s
+build build/debug/json.o: as_debug src/json.s
+build build/debug/http.o: as_debug src/http.s
+build build/debug/config.o: as_debug src/config.s
+build build/debug/provider.o: as_debug src/provider.s
+build build/debug/agent.o: as_debug src/agent.s
+build build/debug/main.o: as_debug src/main.s
+
+build build/debug/assemblyclaw: link_debug $
+  build/debug/version.o $
+  build/debug/error.o $
+  build/debug/varargs.o $
+  build/debug/string.o $
+  build/debug/memory.o $
+  build/debug/io.o $
+  build/debug/json.o $
+  build/debug/http.o $
+  build/debug/config.o $
+  build/debug/provider.o $
+  build/debug/agent.o $
+  build/debug/main.o
+
+build debug: phony build/debug/assemblyclaw
+
+# ── Test ──
+
+build _test: run | build/assemblyclaw
+  cmd = bun tests/run.ts
+
+build test: phony _test
+
+# ── Bench ──
+
+build _bench: run | build/assemblyclaw
+  cmd = bun bench.ts
+
+build bench: phony _bench

@@ -80,30 +80,89 @@ _arena_init:
 // ──────────────────────────────────────────────────────────────────
 .global _arena_alloc
 _arena_alloc:
-    // Round up to 16-byte alignment
-    add     x0, x0, #15
-    and     x0, x0, #~15
+    stp     x29, x30, [sp, #-80]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+    stp     x23, x24, [sp, #48]
+    stp     x25, x26, [sp, #64]
 
-    adrp    x1, _g_arena@PAGE
-    add     x1, x1, _g_arena@PAGEOFF
+    // Round up to 16-byte alignment.
+    add     x19, x0, #15
+    and     x19, x19, #~15
+    cbz     x19, .Larena_alloc_fail
 
-    ldr     x2, [x1, #ARENA_OFFSET]    // current offset
-    ldr     x3, [x1, #ARENA_CAPACITY]  // capacity
+    adrp    x20, _g_arena@PAGE
+    add     x20, x20, _g_arena@PAGEOFF
 
-    add     x4, x2, x0                 // new offset
-    cmp     x4, x3
-    b.gt    .Larena_alloc_oom           // would exceed capacity
+    ldr     x21, [x20, #ARENA_OFFSET]   // current offset
+    ldr     x22, [x20, #ARENA_CAPACITY] // capacity
+    ldr     x23, [x20, #ARENA_BASE]     // base
+    cbz     x23, .Larena_alloc_fail
 
-    // Update offset
-    str     x4, [x1, #ARENA_OFFSET]
+    add     x24, x21, x19               // required new offset
+    cmp     x24, x22
+    b.ls    .Larena_alloc_fit
 
-    // Return pointer = base + old offset
-    ldr     x5, [x1, #ARENA_BASE]
-    add     x0, x5, x2
-    ret
+    // Grow arena: double capacity until it fits the requested offset.
+    mov     x25, x22
+    cbz     x25, .Larena_alloc_fail
 
-.Larena_alloc_oom:
-    mov     x0, #0                      // return NULL
+.Larena_grow_loop:
+    cmp     x25, x24
+    b.ge    .Larena_grow_ready
+    lsl     x25, x25, #1
+    cbz     x25, .Larena_alloc_fail
+    b       .Larena_grow_loop
+
+.Larena_grow_ready:
+    // mmap new backing region
+    mov     x0, #0
+    mov     x1, x25
+    mov     x2, #3
+    movz    x3, #0x1002
+    mov     x4, #-1
+    mov     x5, #0
+    bl      _mmap
+    cmn     x0, #1
+    b.eq    .Larena_alloc_fail
+    mov     x26, x0                     // new base
+
+    // Copy used bytes into the new region.
+    cbz     x21, .Larena_grow_skip_copy
+    mov     x0, x26
+    mov     x1, x23
+    mov     x2, x21
+    bl      _memcpy_simd
+
+.Larena_grow_skip_copy:
+    // Release old region.
+    mov     x0, x23
+    mov     x1, x22
+    bl      _munmap
+
+    // Publish new arena state.
+    str     x26, [x20, #ARENA_BASE]
+    str     x25, [x20, #ARENA_CAPACITY]
+    lsr     x0, x25, #16
+    str     x0, [x20, #ARENA_PAGES]
+    mov     x23, x26
+    mov     x22, x25
+
+.Larena_alloc_fit:
+    str     x24, [x20, #ARENA_OFFSET]
+    add     x0, x23, x21
+    b       .Larena_alloc_ret
+
+.Larena_alloc_fail:
+    mov     x0, #0
+
+.Larena_alloc_ret:
+    ldp     x25, x26, [sp, #64]
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #80
     ret
 
 // ──────────────────────────────────────────────────────────────────

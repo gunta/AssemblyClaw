@@ -51,12 +51,12 @@ brew install --HEAD gunta/assemblyclaw/assemblyclaw
 
 ### Build from source
 
-Requires macOS on Apple Silicon and Xcode Command Line Tools.
+Requires macOS on Apple Silicon, Ninja, and Xcode Command Line Tools.
 
 ```bash
 git clone https://github.com/gunta/AssemblyClaw.git
 cd AssemblyClaw
-make
+ninja
 sudo cp build/assemblyclaw /usr/local/bin/
 ```
 
@@ -71,7 +71,7 @@ assemblyclaw status
 assemblyclaw agent -m "Hello from assembly!"
 
 # Benchmark (from source tree)
-./bench.sh
+bun bench.ts
 ```
 
 ## Architecture
@@ -136,16 +136,16 @@ EOF
 
 - macOS on Apple Silicon (M1/M2/M3/M4/M5)
 - Xcode Command Line Tools (`xcode-select --install`)
-- That's it. No package manager, no dependencies to install.
+- Ninja (`brew install ninja`)
 
 ## Development
 
 ```bash
-make            # Release build (optimized, stripped)
-make debug      # Debug build (symbols, no strip)
-make clean      # Clean build artifacts
-make test       # Run tests
-./bench.sh      # Full benchmark suite
+ninja              # Release build (optimized, stripped)
+ninja debug        # Debug build (with symbols)
+ninja test         # Run tests
+ninja bench        # Full benchmark suite
+ninja -t clean     # Remove build outputs
 ```
 
 ## The Story

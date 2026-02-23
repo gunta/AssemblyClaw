@@ -150,54 +150,80 @@ _read_file:
 // ──────────────────────────────────────────────────────────────────
 .global _path_expand_home
 _path_expand_home:
-    stp     x29, x30, [sp, #-32]!
+    stp     x29, x30, [sp, #-80]!
     mov     x29, sp
-    str     x19, [sp, #16]
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+    stp     x23, x24, [sp, #48]
 
     mov     x19, x0                     // save path
 
     // Check if starts with ~
-    ldrb    w1, [x0]
+    ldrb    w1, [x19]
     cmp     w1, #'~'
-    b.ne    .Lpath_no_expand
+    b.ne    .Lpath_return_orig
+
+    // Only expand "~" and "~/" forms.
+    ldrb    w1, [x19, #1]
+    cbz     w1, .Lpath_expand
+    cmp     w1, #'/'
+    b.ne    .Lpath_return_orig
+
+.Lpath_expand:
+    add     x22, x19, #1                // suffix after "~"
 
     // Get HOME env var
     adrp    x0, _str_home@PAGE
     add     x0, x0, _str_home@PAGEOFF
     bl      _getenv
-    cbz     x0, .Lpath_no_expand        // no HOME, return as-is
+    cbz     x0, .Lpath_return_orig      // no HOME, return as-is
+    mov     x20, x0                     // HOME pointer
 
-    // Calculate lengths
-    mov     x1, x0                      // home dir
+    // home_len = strlen(HOME)
+    mov     x0, x20
     bl      _strlen_simd
-    mov     x2, x0                      // home length
-    mov     x0, x19
-    add     x0, x0, #1                  // skip ~
-    stp     x1, x2, [sp, #-16]!        // save home, home_len
-    bl      _strlen_simd
-    mov     x3, x0                      // rest length (after ~)
-    ldp     x1, x2, [sp], #16          // restore home, home_len
+    mov     x21, x0
 
-    // Allocate: home_len + rest_len + 1
-    add     x0, x2, x3
+    // suffix_len = strlen(path + 1)
+    mov     x0, x22
+    bl      _strlen_simd
+    mov     x23, x0
+
+    // Allocate result = home_len + suffix_len + 1
+    add     x0, x21, x23
     add     x0, x0, #1
-    mov     x4, x0                      // total len
     bl      _arena_alloc
-    cbz     x0, .Lpath_no_expand
+    cbz     x0, .Lpath_return_orig
+    mov     x24, x0                     // destination
 
     // Copy home
-    mov     x5, x0                      // save dest
-    mov     x0, x5                      // dest
-    // x1 = home dir from getenv (still valid? maybe not)
-    // Let's redo this more carefully
-    ldr     x19, [sp, #16]              // hmm this is wrong
-    // Simpler approach: use snprintf
-    b       .Lpath_no_expand            // TODO: implement properly
+    mov     x0, x24
+    mov     x1, x20
+    mov     x2, x21
+    bl      _memcpy_simd
 
-.Lpath_no_expand:
-    mov     x0, x19                     // return original path
-    ldr     x19, [sp, #16]
-    ldp     x29, x30, [sp], #32
+    // Copy suffix (starts with '/' or empty)
+    add     x0, x24, x21
+    mov     x1, x22
+    mov     x2, x23
+    bl      _memcpy_simd
+
+    // NUL-terminate
+    add     x8, x24, x21
+    add     x8, x8, x23
+    strb    wzr, [x8]
+
+    mov     x0, x24
+    b       .Lpath_done
+
+.Lpath_return_orig:
+    mov     x0, x19
+
+.Lpath_done:
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #80
     ret
 
 // ── Data ──

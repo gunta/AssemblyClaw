@@ -35,7 +35,7 @@ _http_post:
     stp     x19, x20, [sp, #16]
     stp     x21, x22, [sp, #32]
     stp     x23, x24, [sp, #48]
-    str     x25, [sp, #64]
+    stp     x25, x26, [sp, #64]
 
     mov     x19, x0                     // URL
     mov     x20, x1                     // body
@@ -78,6 +78,12 @@ _http_post:
     mov     x2, #1
     bl      _curl_easy_setopt_va1
 
+    // Treat HTTP >= 400 as curl errors for clean propagation.
+    mov     x0, x23
+    mov     x1, #CURLOPT_FAILONERROR
+    mov     x2, #1
+    bl      _curl_easy_setopt_va1
+
     // Set write callback
     mov     x0, x23
     mov     x1, #CURLOPT_WRITEFUNCTION
@@ -113,9 +119,30 @@ _http_post:
     bl      _curl_slist_append
     mov     x24, x0                     // save slist
 
-    // Authorization: Bearer <key>
-    // Build "Authorization: Bearer <key>" string
-    // Use snprintf into a stack buffer
+    // Auth header:
+    // - OpenAI-compatible: auth value is "Bearer ...", add "Authorization: ..."
+    // - Anthropic: auth value is full "x-api-key: ...", append directly
+    mov     x0, x21
+    adrp    x1, _str_x_api_key_prefix@PAGE
+    add     x1, x1, _str_x_api_key_prefix@PAGEOFF
+    bl      _str_starts_with
+    cbz     x0, .Lhttp_build_auth_bearer
+
+    // Direct header mode (already "x-api-key: ...")
+    mov     x0, x24
+    mov     x1, x21
+    bl      _curl_slist_append
+    mov     x24, x0
+
+    // Anthropic requires version header
+    mov     x0, x24
+    adrp    x1, _str_anthropic_version@PAGE
+    add     x1, x1, _str_anthropic_version@PAGEOFF
+    bl      _curl_slist_append
+    mov     x24, x0
+    b       .Lhttp_set_headers
+
+.Lhttp_build_auth_bearer:
     sub     sp, sp, #512
     mov     x0, sp
     mov     x1, #512
@@ -131,6 +158,7 @@ _http_post:
     add     sp, sp, #512
 
     // Set headers
+.Lhttp_set_headers:
     mov     x0, x23
     mov     x1, #CURLOPT_HTTPHEADER
     mov     x2, x24
@@ -164,7 +192,7 @@ _http_post:
     mov     x1, x2                      // length
     // x0 already has data pointer
 
-    ldr     x25, [sp, #64]
+    ldp     x25, x26, [sp, #64]
     ldp     x23, x24, [sp, #48]
     ldp     x21, x22, [sp, #32]
     ldp     x19, x20, [sp, #16]
@@ -174,7 +202,7 @@ _http_post:
 .Lhttp_error:
     mov     x0, #0
     mov     x1, #0
-    ldr     x25, [sp, #64]
+    ldp     x25, x26, [sp, #64]
     ldp     x23, x24, [sp, #48]
     ldp     x21, x22, [sp, #32]
     ldp     x19, x20, [sp, #16]
@@ -265,3 +293,7 @@ _str_content_type:
     .asciz  "Content-Type: application/json"
 _str_auth_fmt:
     .asciz  "Authorization: %s"
+_str_x_api_key_prefix:
+    .asciz  "x-api-key:"
+_str_anthropic_version:
+    .asciz  "anthropic-version: 2023-06-01"

@@ -5,14 +5,14 @@ Pure ARM64 assembly AI agent infrastructure for Apple Silicon (macOS).
 ## Build & Test
 
 ```bash
-make              # Release build (optimized, stripped)
-make debug        # Debug build (with symbols)
-make clean        # Remove build/
-make test         # Black-box CLI tests
-./bench.sh        # Full benchmark suite
+ninja              # Release build (optimized, stripped)
+ninja debug        # Debug build (with symbols)
+ninja test         # Black-box CLI tests
+ninja bench        # Full benchmark suite
+ninja -t clean     # Remove build outputs
 ```
 
-Requires: macOS on Apple Silicon + Xcode Command Line Tools. No other dependencies.
+Requires: macOS on Apple Silicon + Ninja + Xcode Command Line Tools. No other dependencies.
 
 The binary links against libSystem and libcurl (both ship with macOS).
 
@@ -34,14 +34,31 @@ src/                  ARM64 assembly source (.s files)
 include/
   constants.inc       Buffer sizes, error codes, curl/mmap constants
   syscall.inc         macOS ARM64 syscall numbers (reference)
+build.ninja           Ninja build configuration
 build/                Compiled .o and final binary
 Formula/              Homebrew tap formula
-site/                 Landing page (Vite)
+site/                 Landing page (Vite + Bun)
 context/              Reference implementations (CClaw in C, NullClaw in Zig)
 bench.sh              Benchmark script (size, RAM, startup)
 PLAN.md               Implementation phases and architecture notes
 TESTS.md              Test matrix tracking
 ```
+
+## Site (Landing Page)
+
+The `site/` directory is a Vite project managed exclusively with **Bun**. Do not use npm.
+
+```bash
+cd site
+bun install           # Install dependencies (uses bun.lock)
+bun run dev           # Dev server
+bun run build         # Production build → site/dist/
+bun run preview       # Preview production build
+```
+
+- Lock file: `bun.lock` (never generate package-lock.json)
+- CI uses `oven-sh/setup-bun@v2` in GitHub Actions
+- Deployed to GitHub Pages via `.github/workflows/deploy.yml`
 
 ## Architecture Rules
 
@@ -83,8 +100,8 @@ AssemblyClaw follows NullClaw's behavioral spec:
 
 ## Working with Assembly
 
-- Use `make debug` and `lldb ./build/assemblyclaw` for debugging
+- Use `ninja debug` and `lldb ./build/debug/assemblyclaw` for debugging
 - When editing `.s` files, always preserve frame pointer setup (`stp x29, x30, [sp, ...]`)
 - Register allocation is manual — check existing usage before claiming registers
-- Test every change with `make test` — a single wrong offset breaks everything
+- Test every change with `ninja test` — a single wrong offset breaks everything
 - The `context/` directory has C and Zig reference implementations for behavioral guidance

@@ -42,6 +42,19 @@ _snprintf_va3:
     ldp     x29, x30, [sp], #16
     ret
 
+// snprintf(buf, size, fmt, arg1, arg2, arg3, arg4)
+.global _snprintf_va4
+_snprintf_va4:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    sub     sp, sp, #32
+    stp     x3, x4, [sp]
+    stp     x5, x6, [sp, #16]
+    bl      _snprintf
+    add     sp, sp, #32
+    ldp     x29, x30, [sp], #16
+    ret
+
 // fprintf(file, fmt, arg1)
 .global _fprintf_va1
 _fprintf_va1:
@@ -76,6 +89,18 @@ _curl_easy_setopt_va1:
     sub     sp, sp, #16
     str     x2, [sp]
     bl      _curl_easy_setopt
+    add     sp, sp, #16
+    ldp     x29, x30, [sp], #16
+    ret
+
+// curl_easy_getinfo(handle, info, arg1)
+.global _curl_easy_getinfo_va1
+_curl_easy_getinfo_va1:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    sub     sp, sp, #16
+    str     x2, [sp]
+    bl      _curl_easy_getinfo
     add     sp, sp, #16
     ldp     x29, x30, [sp], #16
     ret

@@ -62,8 +62,13 @@ _json_find_key:
     b.ne    .Ljson_no_match
     add     x22, x22, #1               // skip closing quote
 
-    // Skip whitespace and colon
-    bl      .Ljson_skip_ws_colon
+    // Only treat this as a key token if the next non-space character is ':'.
+    bl      .Ljson_skip_ws
+    ldrb    w0, [x22]
+    cmp     w0, #':'
+    b.ne    .Ljson_no_match_after_key
+    add     x22, x22, #1               // skip ':'
+    bl      .Ljson_skip_ws
 
     // Now x22 points to the value
     ldrb    w0, [x22]
@@ -94,6 +99,9 @@ _json_find_key:
 
 .Ljson_after_string:
     add     x22, x22, #1               // skip closing quote
+    b       .Ljson_scan
+
+.Ljson_no_match_after_key:
     b       .Ljson_scan
 
 .Ljson_skip_char:
@@ -235,8 +243,8 @@ _json_find_key:
     ldp     x29, x30, [sp], #48
     ret
 
-// ── Helper: skip whitespace and colon after key ──
-.Ljson_skip_ws_colon:
+// ── Helper: skip whitespace ──
+.Ljson_skip_ws:
 .Ljson_ws_loop:
     ldrb    w0, [x22]
     cmp     w0, #' '
@@ -246,8 +254,6 @@ _json_find_key:
     cmp     w0, #'\n'
     b.eq    .Ljson_ws_next
     cmp     w0, #'\r'
-    b.eq    .Ljson_ws_next
-    cmp     w0, #':'
     b.eq    .Ljson_ws_next
     ret                                 // done skipping
 .Ljson_ws_next:
@@ -316,4 +322,103 @@ _json_find_nested:
     mov     x1, #0
     ldr     x19, [sp, #16]
     ldp     x29, x30, [sp], #32
+    ret
+
+// ──────────────────────────────────────────────────────────────────
+// _json_array_first_object: get first object element from a JSON array
+//   x0 = array pointer (expected to start with '[')
+//   x1 = array length (unused, caller may pass 0)
+//   Returns: x0 = pointer to first object '{'
+//            x1 = object length including braces
+//            x0 = NULL if not found
+// ──────────────────────────────────────────────────────────────────
+.global _json_array_first_object
+_json_array_first_object:
+    stp     x29, x30, [sp, #-48]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+
+    mov     x19, x0                     // array start
+    mov     x20, #0
+
+    ldrb    w0, [x19]
+    cmp     w0, #'['
+    b.ne    .Larr_obj_not_found
+    add     x20, x19, #1                // cursor
+
+.Larr_obj_seek:
+    ldrb    w0, [x20]
+    cbz     w0, .Larr_obj_not_found
+    cmp     w0, #' '
+    b.eq    .Larr_obj_seek_next
+    cmp     w0, #'\t'
+    b.eq    .Larr_obj_seek_next
+    cmp     w0, #'\n'
+    b.eq    .Larr_obj_seek_next
+    cmp     w0, #'\r'
+    b.eq    .Larr_obj_seek_next
+    cmp     w0, #','
+    b.eq    .Larr_obj_seek_next
+    cmp     w0, #']'
+    b.eq    .Larr_obj_not_found
+    cmp     w0, #'{'
+    b.eq    .Larr_obj_scan_object
+    b       .Larr_obj_not_found
+
+.Larr_obj_seek_next:
+    add     x20, x20, #1
+    b       .Larr_obj_seek
+
+.Larr_obj_scan_object:
+    mov     x21, x20                    // object start
+    mov     x22, #1                     // brace depth
+    mov     x2, #0                      // relative offset
+
+.Larr_obj_loop:
+    add     x2, x2, #1
+    ldrb    w3, [x21, x2]
+    cbz     w3, .Larr_obj_not_found
+    cmp     w3, #'{'
+    b.eq    .Larr_obj_open
+    cmp     w3, #'}'
+    b.eq    .Larr_obj_close
+    cmp     w3, #'"'
+    b.eq    .Larr_obj_skip_string
+    b       .Larr_obj_loop
+
+.Larr_obj_open:
+    add     x22, x22, #1
+    b       .Larr_obj_loop
+
+.Larr_obj_close:
+    sub     x22, x22, #1
+    cbnz    x22, .Larr_obj_loop
+    add     x2, x2, #1                 // include closing brace
+    mov     x0, x21
+    mov     x1, x2
+    b       .Larr_obj_done
+
+.Larr_obj_skip_string:
+    add     x2, x2, #1
+.Larr_obj_str_loop:
+    ldrb    w3, [x21, x2]
+    cbz     w3, .Larr_obj_not_found
+    cmp     w3, #'"'
+    b.eq    .Larr_obj_loop
+    cmp     w3, #'\\'
+    b.ne    .Larr_obj_str_next
+    add     x2, x2, #1
+.Larr_obj_str_next:
+    add     x2, x2, #1
+    b       .Larr_obj_str_loop
+
+.Larr_obj_not_found:
+    mov     x0, #0
+    mov     x1, #0
+
+.Larr_obj_done:
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #48
     ret

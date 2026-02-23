@@ -110,64 +110,67 @@ All structures aligned to cache line boundaries (128 bytes on M4):
 
 ## Phase Plan
 
-### Phase 1: Foundation (GET IT WORKING) ← Current
+### Phase 1: Foundation (GET IT WORKING)
 - [x] Project structure and build system
 - [x] PLAN.md, README.md, TESTS.md
-- [x] Makefile with release/debug targets
-- [x] bench.sh benchmarking script
-- [ ] main.s — CLI entry, arg parsing, --help, --version
-- [ ] string.s — SIMD strlen, strcmp, strcpy, memcpy
-- [ ] memory.s — Arena allocator with mmap
-- [ ] io.s — File read/write wrappers
-- [ ] error.s — Error codes and messages
+- [x] `build.ninja` with release/debug targets
+- [x] `bench.ts` benchmarking script
+- [x] `main.s` — CLI entry, arg parsing, --help, --version
+- [x] `string.s` — SIMD strlen, strcmp, strcpy, memcpy
+- [x] `memory.s` — Arena allocator with mmap (+ auto-grow)
+- [x] `io.s` — File read/write wrappers
+- [x] `error.s` — Error codes and messages
 
 ### Phase 2: Config & JSON
-- [ ] json.s — Streaming JSON parser (zero-alloc)
-- [ ] config.s — Read ~/.assemblyclaw/config.json
-- [ ] Parse provider settings, API keys, model defaults
+- [x] `json.s` — Streaming JSON parser (zero-alloc)
+- [x] `config.s` — Read ~/.assemblyclaw/config.json
+- [x] Parse provider settings, API keys, model defaults
 
 ### Phase 3: HTTP & Provider
-- [ ] http.s — libcurl FFI (curl_easy_init, setopt, perform)
-- [ ] provider.s — Build OpenAI-compatible chat request JSON
-- [ ] provider.s — Parse streaming/non-streaming responses
-- [ ] Support: OpenRouter, Anthropic, OpenAI, DeepSeek
+- [x] `http.s` — libcurl FFI (curl_easy_init, setopt, perform)
+- [x] `provider.s` — Build OpenAI-compatible chat request JSON
+- [x] `provider.s` — Parse streaming/non-streaming responses
+- [x] Support: OpenRouter, Anthropic, OpenAI, DeepSeek
 
 ### Phase 4: Agent
-- [ ] agent.s — Single message mode (`agent -m "hello"`)
-- [ ] agent.s — Interactive mode (readline-style input)
-- [ ] agent.s — Conversation history (arena-allocated)
-- [ ] Basic status command
+- [x] `agent.s` — Single message mode (`agent -m "hello"`)
+- [x] `agent.s` — Interactive mode (readline-style input)
+- [x] `agent.s` — Conversation history (arena-allocated)
+- [x] Basic status command
 
 ### Phase 5: Hardening
-- [ ] Tool call parsing and dispatch
-- [ ] Memory backend (file-based, minimal)
-- [ ] Config validation
-- [ ] Proper error propagation
-- [ ] Signal handling (SIGINT, SIGTERM)
+- [x] Tool call parsing and dispatch
+- [x] Memory backend (file-based, minimal)
+- [x] Config validation
+- [x] Proper error propagation
+- [x] Signal handling (SIGINT, SIGTERM)
 
 ### Phase 6: Performance Tuning
-- [ ] Profile with Instruments.app
-- [ ] Optimize hot paths with NEON
-- [ ] Prefetch tuning for M4/M5
-- [ ] Binary size optimization (strip, dead code elimination)
-- [ ] Startup time measurement and optimization
+- [x] Profile with Instruments.app
+- [x] Optimize hot paths with NEON
+- [x] Prefetch tuning for M4/M5
+- [x] Binary size optimization (strip, dead code elimination)
+- [x] Startup time measurement and optimization
 
 ## Build System
 
-```makefile
-# Release: maximum optimization, smallest binary
-AS = as
-LD = ld
-ASFLAGS = -arch arm64
-LDFLAGS = -arch arm64 -lSystem -lcurl -syslibroot $(shell xcrun --show-sdk-path)
+```ninja
+# Release: optimized + stripped
+rule as
+  command = clang -arch arm64 -c -o $out $in
+rule link_strip
+  command = clang -arch arm64 -lcurl -Wl,-dead_strip -o $out $in && strip -x $out
 
 # Debug: symbols, no stripping
-ASFLAGS_DEBUG = -arch arm64 -g
+rule as_debug
+  command = clang -arch arm64 -c -g -o $out $in
+rule link_debug
+  command = clang -arch arm64 -lcurl -o $out $in
 ```
 
 ## Testing Strategy
 
-Tests run against the compiled binary (black-box):
+Tests run as a mix of black-box binary checks and small object-level unit harnesses:
 1. CLI flag tests (--help, --version, unknown command)
 2. Config parsing tests (valid JSON, missing fields, malformed)
 3. String operation tests (via test harness linked against .o files)
