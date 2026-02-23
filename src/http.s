@@ -41,6 +41,10 @@ _http_post:
     mov     x20, x1                     // body
     mov     x21, x2                     // auth header value
 
+    // Load libcurl lazily. This keeps --help/--version/status from mapping libcurl.
+    bl      .Lhttp_curl_ensure
+    cbz     x0, .Lhttp_error
+
     // Allocate response buffer from arena (8KB initial)
     mov     x0, #BUF_LARGE
     bl      _arena_alloc
@@ -278,11 +282,174 @@ _http_write_callback:
     ldp     x29, x30, [sp], #32
     ret
 
+// ──────────────────────────────────────────────────────────────────
+// .Lhttp_curl_ensure: lazy-resolve libcurl symbols via dlopen/dlsym
+//   Returns: x0 = 1 if ready, 0 on failure
+// ──────────────────────────────────────────────────────────────────
+.Lhttp_curl_ensure:
+    stp     x29, x30, [sp, #-64]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+    stp     x23, x24, [sp, #48]
+
+    adrp    x19, _g_http_curl_loaded@PAGE
+    add     x19, x19, _g_http_curl_loaded@PAGEOFF
+    ldr     x0, [x19]
+    cbnz    x0, .Lhttp_curl_ready
+
+    adrp    x20, _g_http_curl_failed@PAGE
+    add     x20, x20, _g_http_curl_failed@PAGEOFF
+    ldr     x0, [x20]
+    cbnz    x0, .Lhttp_curl_not_ready
+
+    adrp    x0, _str_libcurl_path@PAGE
+    add     x0, x0, _str_libcurl_path@PAGEOFF
+    mov     x1, #5                      // RTLD_LAZY | RTLD_LOCAL
+    bl      _dlopen
+    cbz     x0, .Lhttp_curl_mark_failed
+    mov     x21, x0
+
+    adrp    x22, _g_http_curl_handle@PAGE
+    add     x22, x22, _g_http_curl_handle@PAGEOFF
+    str     x21, [x22]
+
+    // curl_easy_init
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_easy_init@PAGE
+    add     x1, x1, _str_sym_curl_easy_init@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_easy_init_fn@PAGE
+    add     x8, x8, _g_curl_easy_init_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_easy_setopt
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_easy_setopt@PAGE
+    add     x1, x1, _str_sym_curl_easy_setopt@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_easy_setopt_fn@PAGE
+    add     x8, x8, _g_curl_easy_setopt_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_easy_perform
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_easy_perform@PAGE
+    add     x1, x1, _str_sym_curl_easy_perform@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_easy_perform_fn@PAGE
+    add     x8, x8, _g_curl_easy_perform_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_easy_cleanup
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_easy_cleanup@PAGE
+    add     x1, x1, _str_sym_curl_easy_cleanup@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_easy_cleanup_fn@PAGE
+    add     x8, x8, _g_curl_easy_cleanup_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_slist_append
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_slist_append@PAGE
+    add     x1, x1, _str_sym_curl_slist_append@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_slist_append_fn@PAGE
+    add     x8, x8, _g_curl_slist_append_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_slist_free_all
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_slist_free_all@PAGE
+    add     x1, x1, _str_sym_curl_slist_free_all@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_slist_free_all_fn@PAGE
+    add     x8, x8, _g_curl_slist_free_all_fn@PAGEOFF
+    str     x0, [x8]
+
+    // curl_easy_getinfo (optional today, kept for completeness)
+    mov     x0, x21
+    adrp    x1, _str_sym_curl_easy_getinfo@PAGE
+    add     x1, x1, _str_sym_curl_easy_getinfo@PAGEOFF
+    bl      _dlsym
+    cbz     x0, .Lhttp_curl_bind_fail
+    adrp    x8, _g_curl_easy_getinfo_fn@PAGE
+    add     x8, x8, _g_curl_easy_getinfo_fn@PAGEOFF
+    str     x0, [x8]
+
+    mov     x0, #1
+    str     x0, [x19]
+    b       .Lhttp_curl_ready
+
+.Lhttp_curl_bind_fail:
+    adrp    x22, _g_http_curl_handle@PAGE
+    add     x22, x22, _g_http_curl_handle@PAGEOFF
+    ldr     x0, [x22]
+    cbz     x0, .Lhttp_curl_mark_failed
+    bl      _dlclose
+    str     xzr, [x22]
+
+.Lhttp_curl_mark_failed:
+    mov     x0, #1
+    str     x0, [x20]
+
+    // Clear any partially resolved symbols.
+    adrp    x8, _g_curl_easy_init_fn@PAGE
+    add     x8, x8, _g_curl_easy_init_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_easy_setopt_fn@PAGE
+    add     x8, x8, _g_curl_easy_setopt_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_easy_perform_fn@PAGE
+    add     x8, x8, _g_curl_easy_perform_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_easy_cleanup_fn@PAGE
+    add     x8, x8, _g_curl_easy_cleanup_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_slist_append_fn@PAGE
+    add     x8, x8, _g_curl_slist_append_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_slist_free_all_fn@PAGE
+    add     x8, x8, _g_curl_slist_free_all_fn@PAGEOFF
+    str     xzr, [x8]
+    adrp    x8, _g_curl_easy_getinfo_fn@PAGE
+    add     x8, x8, _g_curl_easy_getinfo_fn@PAGEOFF
+    str     xzr, [x8]
+
+.Lhttp_curl_not_ready:
+    mov     x0, #0
+    b       .Lhttp_curl_done
+
+.Lhttp_curl_ready:
+    mov     x0, #1
+
+.Lhttp_curl_done:
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #64
+    ret
+
 // ── BSS ──
 .section __DATA,__bss
 .p2align 4
 _g_http_resp:
     .space  RESP_SIZE
+
+.p2align 3
+_g_http_curl_handle:
+    .quad   0
+_g_http_curl_loaded:
+    .quad   0
+_g_http_curl_failed:
+    .quad   0
 
 // ── Data ──
 .section __DATA,__const
@@ -297,3 +464,19 @@ _str_x_api_key_prefix:
     .asciz  "x-api-key:"
 _str_anthropic_version:
     .asciz  "anthropic-version: 2023-06-01"
+_str_libcurl_path:
+    .asciz  "/usr/lib/libcurl.4.dylib"
+_str_sym_curl_easy_init:
+    .asciz  "curl_easy_init"
+_str_sym_curl_easy_setopt:
+    .asciz  "curl_easy_setopt"
+_str_sym_curl_easy_perform:
+    .asciz  "curl_easy_perform"
+_str_sym_curl_easy_cleanup:
+    .asciz  "curl_easy_cleanup"
+_str_sym_curl_slist_append:
+    .asciz  "curl_slist_append"
+_str_sym_curl_slist_free_all:
+    .asciz  "curl_slist_free_all"
+_str_sym_curl_easy_getinfo:
+    .asciz  "curl_easy_getinfo"

@@ -88,7 +88,15 @@ _curl_easy_setopt_va1:
     mov     x29, sp
     sub     sp, sp, #16
     str     x2, [sp]
-    bl      _curl_easy_setopt
+    adrp    x8, _g_curl_easy_setopt_fn@PAGE
+    add     x8, x8, _g_curl_easy_setopt_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_setopt_missing
+    blr     x8
+    b       .Lcurl_setopt_done
+.Lcurl_setopt_missing:
+    mov     x0, #1
+.Lcurl_setopt_done:
     add     sp, sp, #16
     ldp     x29, x30, [sp], #16
     ret
@@ -100,7 +108,125 @@ _curl_easy_getinfo_va1:
     mov     x29, sp
     sub     sp, sp, #16
     str     x2, [sp]
-    bl      _curl_easy_getinfo
+    adrp    x8, _g_curl_easy_getinfo_fn@PAGE
+    add     x8, x8, _g_curl_easy_getinfo_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_getinfo_missing
+    blr     x8
+    b       .Lcurl_getinfo_done
+.Lcurl_getinfo_missing:
+    mov     x0, #1
+.Lcurl_getinfo_done:
     add     sp, sp, #16
     ldp     x29, x30, [sp], #16
     ret
+
+// curl_easy_init()
+.global _curl_easy_init
+_curl_easy_init:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    adrp    x8, _g_curl_easy_init_fn@PAGE
+    add     x8, x8, _g_curl_easy_init_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_init_missing
+    blr     x8
+    b       .Lcurl_init_done
+.Lcurl_init_missing:
+    mov     x0, #0
+.Lcurl_init_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+// curl_easy_perform(handle)
+.global _curl_easy_perform
+_curl_easy_perform:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    adrp    x8, _g_curl_easy_perform_fn@PAGE
+    add     x8, x8, _g_curl_easy_perform_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_perform_missing
+    blr     x8
+    b       .Lcurl_perform_done
+.Lcurl_perform_missing:
+    mov     x0, #1
+.Lcurl_perform_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+// curl_easy_cleanup(handle)
+.global _curl_easy_cleanup
+_curl_easy_cleanup:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    adrp    x8, _g_curl_easy_cleanup_fn@PAGE
+    add     x8, x8, _g_curl_easy_cleanup_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_cleanup_done
+    blr     x8
+.Lcurl_cleanup_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+// curl_slist_append(list, string)
+.global _curl_slist_append
+_curl_slist_append:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    adrp    x8, _g_curl_slist_append_fn@PAGE
+    add     x8, x8, _g_curl_slist_append_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_slist_append_missing
+    blr     x8
+    b       .Lcurl_slist_append_done
+.Lcurl_slist_append_missing:
+    mov     x0, #0
+.Lcurl_slist_append_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+// curl_slist_free_all(list)
+.global _curl_slist_free_all
+_curl_slist_free_all:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+    adrp    x8, _g_curl_slist_free_all_fn@PAGE
+    add     x8, x8, _g_curl_slist_free_all_fn@PAGEOFF
+    ldr     x8, [x8]
+    cbz     x8, .Lcurl_slist_free_done
+    blr     x8
+.Lcurl_slist_free_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+.section __DATA,__bss
+.p2align 3
+
+.global _g_curl_easy_init_fn
+_g_curl_easy_init_fn:
+    .quad   0
+
+.global _g_curl_easy_setopt_fn
+_g_curl_easy_setopt_fn:
+    .quad   0
+
+.global _g_curl_easy_perform_fn
+_g_curl_easy_perform_fn:
+    .quad   0
+
+.global _g_curl_easy_cleanup_fn
+_g_curl_easy_cleanup_fn:
+    .quad   0
+
+.global _g_curl_slist_append_fn
+_g_curl_slist_append_fn:
+    .quad   0
+
+.global _g_curl_slist_free_all_fn
+_g_curl_slist_free_all_fn:
+    .quad   0
+
+.global _g_curl_easy_getinfo_fn
+_g_curl_easy_getinfo_fn:
+    .quad   0

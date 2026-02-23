@@ -30,11 +30,7 @@ _main:
 
     mov     x19, x0                     // argc
     mov     x20, x1                     // argv
-
-    // Initialize arena allocator (64KB)
-    mov     x0, #ARENA_PAGE_SIZE
-    bl      _arena_init
-    cbnz    x0, .Lmain_arena_fail
+    mov     x22, #0                     // arena initialized flag
 
     // If argc < 2, print usage
     cmp     x19, #2
@@ -94,7 +90,9 @@ _main:
 .Lmain_help:
     adrp    x0, _str_usage@PAGE
     add     x0, x0, _str_usage@PAGEOFF
-    bl      _puts
+    mov     x1, #_str_usage_len
+    mov     x2, #STDOUT
+    bl      _write_fd
     mov     x0, #0
     b       .Lmain_exit
 
@@ -104,10 +102,12 @@ _main:
     b       .Lmain_exit
 
 .Lmain_status:
+    bl      .Lmain_ensure_arena
     bl      _status_run
     b       .Lmain_exit
 
 .Lmain_agent:
+    bl      .Lmain_ensure_arena
     // Pass remaining args to agent_run
     // argc = original argc - 2, argv = argv + 2
     sub     x0, x19, #2                // sub-argc
@@ -133,11 +133,33 @@ _main:
     bl      _die
     // die never returns
 
+.Lmain_ensure_arena:
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+
+    cmp     x22, #0
+    b.ne    .Lmain_ensure_arena_done
+    mov     x0, #ARENA_PAGE_SIZE
+    bl      _arena_init
+    cbnz    x0, .Lmain_ensure_arena_fail
+    mov     x22, #1
+
+.Lmain_ensure_arena_done:
+    ldp     x29, x30, [sp], #16
+    ret
+
+.Lmain_ensure_arena_fail:
+    ldp     x29, x30, [sp], #16
+    b       .Lmain_arena_fail
+
 .Lmain_exit:
     // Cleanup arena
-    mov     x22, x0                     // save exit code
+    mov     x21, x0                     // save exit code
+    cmp     x22, #0
+    b.eq    .Lmain_exit_skip_arena
     bl      _arena_destroy
-    mov     x0, x22                     // restore exit code
+.Lmain_exit_skip_arena:
+    mov     x0, x21                     // restore exit code
 
     ldp     x21, x22, [sp, #32]
     ldp     x19, x20, [sp, #16]
@@ -186,3 +208,5 @@ _str_usage:
     .ascii  "config:\n"
     .ascii  "  ~/.assemblyclaw/config.json\n"
     .asciz  ""
+
+.set _str_usage_len, . - _str_usage - 1

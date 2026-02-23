@@ -153,7 +153,7 @@ function initNavScroll() {
 }
 
 const runtimeMetrics = {
-  binaryDisplay: '36 KB',
+  binaryDisplay: '35 KB',
 };
 
 function setText(id, value) {
@@ -425,6 +425,273 @@ function initSourceViewer() {
   });
 }
 
+// ─── GLOSSARY POPOVERS ───
+
+const glossary = {
+  'arm64': {
+    title: 'ARM64',
+    aka: 'AArch64 — 64-bit ARM instruction set',
+    body: 'The instruction set used by <strong>Apple Silicon</strong> (M1–M5) and most modern phones. Each instruction is exactly 4 bytes. It\'s a RISC architecture — simple instructions, 31 general-purpose registers, designed for high throughput at low power.',
+    analogy: 'Think x86 is a Swiss Army knife — ARM64 is a scalpel. Fewer tricks, but every cut is precise and fast.',
+  },
+  'libsystem': {
+    title: 'libSystem',
+    aka: 'macOS kernel interface library',
+    body: 'The thinnest possible layer between your code and the macOS kernel. Provides <strong>write()</strong>, <strong>read()</strong>, <strong>mmap()</strong>, <strong>exit()</strong> and other OS primitives. Every macOS program links against it — it\'s the one dependency you literally cannot avoid.',
+    analogy: 'If your code is a letter, libSystem is the postal service — it physically delivers your requests to the OS.',
+  },
+  'apple-silicon': {
+    title: 'Apple Silicon',
+    aka: 'Apple\'s ARM64-based SoC family',
+    body: 'Apple\'s custom chips (M1, M2, M3, M4, M5) that power Macs, iPads, and iPhones. They use the <strong>ARM64 instruction set</strong> and feature unified memory (CPU and GPU share the same RAM), high-efficiency cores, and wide decode pipelines that can execute 8+ instructions per cycle.',
+  },
+  'neon-simd': {
+    title: 'NEON SIMD',
+    aka: 'Single Instruction, Multiple Data',
+    body: 'ARM\'s built-in vector engine. Instead of processing one byte at a time, NEON handles <strong>16 bytes simultaneously</strong> using special 128-bit registers (v0–v31). AssemblyClaw uses this to scan through JSON and strings at 16 bytes per cycle.',
+    analogy: 'Like reading a book one word at a time vs. photographing an entire paragraph and searching the image all at once.',
+  },
+  'cmeq': {
+    title: 'CMEQ',
+    aka: 'Compare Equal (Vector)',
+    body: 'An ARM NEON instruction that compares <strong>16 bytes at once</strong> against a target value. For example, finding every <code>"</code> character in a string. It produces a mask: matching bytes become 0xFF, non-matches become 0x00.',
+    analogy: 'Like shining a UV light on a page — all matching characters instantly glow, while everything else stays dark.',
+  },
+  'umaxv': {
+    title: 'UMAXV',
+    aka: 'Unsigned Maximum across Vector',
+    body: 'Collapses a 16-byte comparison result into a <strong>single value</strong>. If any byte matched (is non-zero), the result is non-zero. Turns "did any of these 16 bytes match?" into a yes/no answer in <strong>one instruction</strong>.',
+    analogy: 'After the UV light reveals the matches, UMAXV is glancing at the page and instantly knowing "yes, there\'s at least one."',
+  },
+  'vector-instructions': {
+    title: 'Vector Instructions',
+    aka: 'SIMD — parallel data processing',
+    body: 'CPU instructions that operate on <strong>multiple data elements simultaneously</strong>. ARM NEON provides 128-bit registers that hold 16 bytes, 8 shorts, 4 ints, or 2 longs. One instruction processes all elements in parallel — this is how modern CPUs achieve throughput far beyond byte-at-a-time processing.',
+  },
+  'cache-aligned': {
+    title: 'Cache-Aligned',
+    aka: 'Memory alignment to cache line boundaries',
+    body: 'Placing data at memory addresses that are <strong>exact multiples of the cache line size</strong>. On Apple M4/M5, cache lines are 128 bytes. When data is aligned, the CPU loads it in one read. Misaligned data can straddle two cache lines, causing two reads — doubling the latency.',
+    analogy: 'Like parking a car perfectly within the lines vs. across two spaces — aligned data takes one "parking spot read," misaligned takes two.',
+  },
+  'cache-lines': {
+    title: 'Cache Lines',
+    aka: 'Smallest unit of CPU cache transfer',
+    body: 'The smallest chunk of data the CPU moves between main memory and its fast on-chip cache. On <strong>Apple M4/M5, each cache line is 128 bytes</strong>. When you access one byte, the CPU actually fetches the entire 128-byte line containing it. Alignment ensures your data structures don\'t straddle two lines.',
+  },
+  'branchless': {
+    title: 'Branchless Code',
+    aka: 'Avoiding conditional jumps',
+    body: 'Code written to avoid <code>if/else</code> jumps entirely. Modern CPUs <strong>speculate</strong> which branch to take — when they guess wrong, they waste ~12 cycles flushing the pipeline. Branchless code uses conditional-select instructions (<strong>CSEL/CSETM</strong>) instead, guaranteeing constant execution time regardless of the data.',
+    analogy: 'Instead of asking "should I go left or right?" at every fork, you walk both paths simultaneously and pick the result at the end.',
+  },
+  'csel': {
+    title: 'CSEL',
+    aka: 'Conditional Select',
+    body: 'An ARM64 instruction that picks one of two register values based on a condition flag — <strong>without branching</strong>. It\'s a hardware ternary operator: <code>result = condition ? A : B</code>, executed in a single cycle with zero pipeline risk.',
+    analogy: 'In JavaScript: <code>const x = cond ? a : b</code> — but CSEL does this in the hardware itself, with zero branch prediction penalty.',
+  },
+  'csetm': {
+    title: 'CSETM',
+    aka: 'Conditional Set Mask',
+    body: 'Sets a register to <strong>all 1-bits</strong> (0xFFFF…) if a condition is true, or <strong>all 0-bits</strong> if false. Creates bitmasks for branchless logic — you AND/OR the mask with data to conditionally keep or zero out values, without ever branching.',
+  },
+  'branch-prediction': {
+    title: 'Branch Prediction',
+    aka: 'CPU speculative execution',
+    body: 'The CPU\'s mechanism for <strong>guessing</strong> which way an if/else will go before it\'s actually computed. Correct guesses keep the pipeline full. Wrong guesses ("mispredicts") cost <strong>~12–14 cycles</strong> on Apple Silicon as the CPU flushes speculative work and restarts from the correct path.',
+    analogy: 'Like pre-loading the next webpage you think the user will click. Guess right → instant load. Guess wrong → visible delay while you fetch the actual page.',
+  },
+  'arena-allocator': {
+    title: 'Arena Allocator',
+    aka: 'Bump/region-based memory allocation',
+    body: 'A memory strategy where one large block is reserved upfront (via <strong>mmap</strong>), and pieces are handed out <strong>sequentially</strong> — just bump a pointer forward. Nothing is individually freed. When done, the entire arena is released at once. Eliminates malloc/free overhead and fragmentation entirely.',
+    analogy: 'Like writing on a notepad — just keep writing forward. When you\'re done, tear off the whole pad. Never erase individual lines.',
+  },
+  'mmap': {
+    title: 'mmap',
+    aka: 'Memory Map — OS-level allocation',
+    body: 'A <strong>system call</strong> that asks the OS to map a region of virtual memory directly, bypassing malloc. The kernel hands back a contiguous block backed by physical pages <strong>on demand</strong> (lazy allocation). The memory is guaranteed zeroed by the OS. No initialization overhead.',
+    analogy: 'malloc is like buying memory from a store (middleman markup). mmap is going directly to the factory (the OS kernel).',
+  },
+  'fragmentation': {
+    title: 'Memory Fragmentation',
+    aka: 'Unusable gaps between allocations',
+    body: 'When memory is allocated and freed in random order (as with malloc/free), small <strong>unusable gaps</strong> appear between active allocations. Over time, you might have plenty of free memory but no contiguous block large enough to use. Arena allocators avoid this entirely by allocating sequentially and freeing everything at once.',
+  },
+  'zero-copy': {
+    title: 'Zero-Copy Strings',
+    aka: 'No-allocation string views',
+    body: 'Instead of duplicating string data into new buffers, strings are represented as a <strong>pointer + length</strong> (16 bytes total). No copying, no allocation — just a lightweight view into existing memory. This is how Rust slices (<code>&str</code>) and Go strings work internally.',
+    analogy: 'Instead of photocopying a page to quote one sentence, you just point at the page and say "from here to here."',
+  },
+  'ptr-len': {
+    title: 'ptr+len',
+    aka: 'Pointer + Length string representation',
+    body: 'A string stored as two values: a <strong>memory address</strong> (pointer) to the first byte, and a <strong>byte count</strong> (length). Unlike C strings that scan for a NUL byte to find the end, ptr+len strings know their exact size — enabling <strong>O(1)</strong> length checks and safe handling of binary data.',
+  },
+  'nul-terminator': {
+    title: 'NUL Terminator',
+    aka: 'C-style string ending (0x00)',
+    body: 'The byte <code>0x00</code> placed at the end of C-style strings to mark where the string ends. Finding a string\'s length requires scanning <strong>every byte</strong> until hitting 0x00 — an O(n) operation. Strings also can\'t safely contain the zero byte. ptr+len representation avoids both limitations.',
+  },
+  'syscalls': {
+    title: 'System Calls',
+    aka: 'Direct kernel requests',
+    body: 'Requests from a program to the <strong>operating system kernel</strong>. When AssemblyClaw calls write() or read(), it triggers a hardware exception that transfers control to macOS, which performs the I/O and returns. No middleman library code — the most direct path from code to kernel.',
+    analogy: 'Like yelling directly at the OS: "Write these bytes to this file!" — no receptionist, no queue, just a direct line.',
+  },
+  'ffi': {
+    title: 'FFI',
+    aka: 'Foreign Function Interface',
+    body: 'A mechanism for calling functions written in <strong>one language from another</strong>. AssemblyClaw\'s assembly code calls C functions in libcurl and libSystem by following the ARM64 calling convention: arguments in registers x0–x7, return value in x0. No wrappers or bindings needed.',
+    analogy: 'Like speaking another language fluently enough to order at a restaurant — you follow their conventions (register protocol) and get exactly what you asked for.',
+  },
+  'libc': {
+    title: 'libc',
+    aka: 'C Standard Library',
+    body: 'The C standard library provides convenience wrappers like <strong>printf()</strong>, <strong>malloc()</strong>, <strong>strlen()</strong> around raw system calls. These wrappers add overhead — argument validation, buffering, errno handling. AssemblyClaw bypasses them and calls the underlying OS functions directly, shaving off every unnecessary instruction.',
+  },
+  'single-binary': {
+    title: 'Single Binary',
+    aka: 'Self-contained executable',
+    body: 'A program compiled into <strong>one standalone file</strong> with no external dependencies to install. No node_modules, no .dll/.so files, no runtime. Just copy the binary anywhere and run it. Zig, Go, and Rust excel at producing single binaries.',
+    analogy: 'Like a portable app on a USB stick vs. an installer that scatters files across your system.',
+  },
+};
+
+function initGlossary() {
+  const terms = document.querySelectorAll('.term[data-term]');
+  if (!terms.length) return;
+
+  // Create popover element
+  const popover = document.createElement('div');
+  popover.className = 'term-popover';
+  popover.innerHTML = `
+    <div class="term-popover-arrow"></div>
+    <div class="term-popover-title"></div>
+    <div class="term-popover-aka"></div>
+    <div class="term-popover-body"></div>
+    <div class="term-popover-analogy"></div>
+  `;
+  document.body.appendChild(popover);
+
+  const arrow = popover.querySelector('.term-popover-arrow');
+  const titleEl = popover.querySelector('.term-popover-title');
+  const akaEl = popover.querySelector('.term-popover-aka');
+  const bodyEl = popover.querySelector('.term-popover-body');
+  const analogyEl = popover.querySelector('.term-popover-analogy');
+
+  let activeTerm = null;
+
+  function show(term) {
+    const key = term.dataset.term;
+    const entry = glossary[key];
+    if (!entry) return;
+
+    titleEl.textContent = entry.title;
+    if (entry.aka) {
+      akaEl.textContent = entry.aka;
+      akaEl.style.display = '';
+    } else {
+      akaEl.style.display = 'none';
+    }
+    bodyEl.innerHTML = entry.body;
+    if (entry.analogy) {
+      analogyEl.textContent = entry.analogy;
+      analogyEl.style.display = '';
+    } else {
+      analogyEl.style.display = 'none';
+    }
+
+    // Position: prefer below the term, flip above if no space
+    popover.classList.remove('visible');
+    popover.style.left = '0px';
+    popover.style.top = '0px';
+    arrow.classList.remove('term-popover-arrow--bottom');
+
+    // Make visible to measure
+    popover.style.opacity = '0';
+    popover.style.pointerEvents = 'none';
+    popover.classList.add('visible');
+
+    const rect = term.getBoundingClientRect();
+    const pop = popover.getBoundingClientRect();
+    const gap = 10;
+    const margin = 16;
+
+    let top = rect.bottom + gap;
+    let flipAbove = false;
+
+    // Flip above if below would overflow viewport
+    if (top + pop.height > window.innerHeight - margin) {
+      top = rect.top - pop.height - gap;
+      flipAbove = true;
+    }
+
+    // Horizontal: center on term, clamp to viewport
+    let left = rect.left + rect.width / 2 - pop.width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - pop.width - margin));
+
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+
+    // Arrow position
+    const arrowLeft = Math.max(12, Math.min(rect.left + rect.width / 2 - left - 5, pop.width - 22));
+    arrow.style.left = `${arrowLeft}px`;
+    if (flipAbove) {
+      arrow.classList.add('term-popover-arrow--bottom');
+    }
+
+    // Animate in
+    popover.style.opacity = '';
+    popover.style.pointerEvents = '';
+    popover.style.transform = flipAbove ? 'translateY(-6px)' : 'translateY(6px)';
+    requestAnimationFrame(() => {
+      popover.style.transform = 'translateY(0)';
+    });
+
+    activeTerm = term;
+  }
+
+  function hide() {
+    popover.classList.remove('visible');
+    activeTerm = null;
+  }
+
+  terms.forEach((term) => {
+    term.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeTerm === term) {
+        hide();
+      } else {
+        show(term);
+      }
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (activeTerm && !popover.contains(e.target)) {
+      hide();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeTerm) hide();
+  });
+
+  // Reposition on scroll/resize
+  let repositionRaf = 0;
+  function reposition() {
+    if (!activeTerm) return;
+    cancelAnimationFrame(repositionRaf);
+    repositionRaf = requestAnimationFrame(() => show(activeTerm));
+  }
+  window.addEventListener('scroll', reposition, { passive: true });
+  window.addEventListener('resize', reposition, { passive: true });
+}
+
 // ─── INIT ───
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -439,6 +706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTypingEffect();
   initSmoothScroll();
   initSourceViewer();
+  initGlossary();
 
   // trigger hero reveals immediately with stagger
   const heroReveals = document.querySelectorAll('.hero .reveal');

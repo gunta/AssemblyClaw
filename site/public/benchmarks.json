@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-02-23T21:43:33.903Z",
-  "git_commit": "67d3950",
+  "generated_at_utc": "2026-02-23T22:15:01.514Z",
+  "git_commit": "ef94782",
   "source_binary": "./build/assemblyclaw",
   "targets": {
     "binary_kb": 32,
@@ -48,23 +48,23 @@
   "languages": {
     "assembly": {
       "name": "Assembly",
-      "binary_kb": 36.63,
-      "binary_bytes": 37504,
-      "binary_display": "36 KB",
-      "ram_kb": 5568,
-      "ram_bytes": 5701632,
-      "ram_display": "5 MB",
-      "startup_ms": 7.322069196765503,
-      "startup_display": "7 ms"
+      "binary_kb": 35.19,
+      "binary_bytes": 36032,
+      "binary_display": "35 KB",
+      "ram_kb": 1312,
+      "ram_bytes": 1343488,
+      "ram_display": "1 MB",
+      "startup_ms": 4.7100363141655,
+      "startup_display": "4 ms"
     },
     "typescript": {
       "name": "TypeScript",
       "binary_kb": 42712,
       "binary_display": "41 MB",
-      "ram_kb": 380944,
-      "ram_display": "372 MB",
-      "startup_ms": 821.7643807599999,
-      "startup_display": "821 ms"
+      "ram_kb": 368000,
+      "ram_display": "359 MB",
+      "startup_ms": 842.4357983599998,
+      "startup_display": "842 ms"
     },
     "zig": {
       "name": "Zig",
@@ -72,7 +72,7 @@
       "binary_display": "2 MB",
       "ram_kb": 1776,
       "ram_display": "1 MB",
-      "startup_ms": 5.353891852941178,
+      "startup_ms": 5.307221425324677,
       "startup_display": "5 ms"
     },
     "c": {
@@ -81,14 +81,14 @@
       "binary_display": "143 KB",
       "ram_kb": 5728,
       "ram_display": "5 MB",
-      "startup_ms": 8.139698258620692,
+      "startup_ms": 8.040987160400997,
       "startup_display": "8 ms"
     }
   },
   "extra_metrics": {
     "page_faults": 1,
-    "involuntary_context_switches": 6,
-    "instructions_retired": 21837639
+    "involuntary_context_switches": 14,
+    "instructions_retired": 11934502
   },
   "status": {
     "binary_target_met": false,

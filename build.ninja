@@ -19,11 +19,11 @@ rule as_debug
   description = AS $in [debug]
 
 rule link_strip
-  command = clang -arch arm64 -lcurl -Wl,-dead_strip -o $out $in && strip -x $out
+  command = clang -arch arm64 -Wl,-dead_strip -Wl,-S -o $out $in && strip -u -r $out
   description = LINK+STRIP $out
 
 rule link_debug
-  command = clang -arch arm64 -lcurl -o $out $in
+  command = clang -arch arm64 -o $out $in
   description = LINK $out
 
 rule run

@@ -24,7 +24,9 @@ _version_print:
 
     adrp    x0, _str_version_full@PAGE
     add     x0, x0, _str_version_full@PAGEOFF
-    bl      _puts
+    mov     x1, #_str_version_full_len
+    mov     x2, #STDOUT
+    bl      _write_fd
 
     ldp     x29, x30, [sp], #16
     ret
@@ -37,4 +39,7 @@ _str_version:
     .asciz  "0.1.0"
 
 _str_version_full:
-    .asciz  "assemblyclaw 0.1.0 (arm64-apple-darwin)"
+    .ascii  "assemblyclaw 0.1.0 (arm64-apple-darwin)\n"
+    .asciz  ""
+
+.set _str_version_full_len, . - _str_version_full - 1

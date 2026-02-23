@@ -138,6 +138,7 @@ _config_load:
     add     x1, x1, _str_key_api_key@PAGEOFF
     bl      _json_find_key
     cbz     x0, .Lcfg_try_top_apikey
+    cbz     x1, .Lcfg_try_top_apikey
     str     x0, [x23, #CFG_API_KEY]
     str     x1, [x23, #(CFG_API_KEY + 8)]
     b       .Lcfg_parse_model
@@ -147,26 +148,97 @@ _config_load:
     adrp    x1, _str_key_api_key@PAGE
     add     x1, x1, _str_key_api_key@PAGEOFF
     bl      _json_find_key
+    cbz     x0, .Lcfg_apikey_env
+    cbz     x1, .Lcfg_apikey_env
+    str     x0, [x23, #CFG_API_KEY]
+    str     x1, [x23, #(CFG_API_KEY + 8)]
+    b       .Lcfg_parse_model
+
+.Lcfg_apikey_env:
+    // Fallback to provider-specific API key env var.
+    mov     x0, x26
+    bl      .Lcfg_env_api_key_for_provider
+    cbz     x0, .Lcfg_apikey_env_autoselect
+    str     x0, [x23, #CFG_API_KEY]
+    str     x1, [x23, #(CFG_API_KEY + 8)]
+    b       .Lcfg_parse_model
+
+.Lcfg_apikey_env_autoselect:
+    // If selected provider has no key, auto-pick a provider from env keys.
+    mov     x0, x23                     // config ptr
+    mov     x1, x26                     // provider temp buffer
+    bl      .Lcfg_env_select_provider_key
     cbz     x0, .Lcfg_no_apikey
     str     x0, [x23, #CFG_API_KEY]
     str     x1, [x23, #(CFG_API_KEY + 8)]
 
+    // Provider may have changed; re-select providers.<provider> object.
+    mov     x21, #0
+    mov     x22, #0
+    mov     x0, x19
+    adrp    x1, _str_key_providers@PAGE
+    add     x1, x1, _str_key_providers@PAGEOFF
+    bl      _json_find_key
+    cbz     x0, .Lcfg_parse_model
+    add     x8, x0, x1
+    strb    wzr, [x8]
+    mov     x1, x26
+    bl      _json_find_key
+    mov     x21, x0
+    mov     x22, x1
+    cbnz    x21, .Lcfg_parse_model
+    mov     x22, #-1                    // sentinel: env-switched provider has no object
+
 .Lcfg_parse_model:
-    cbz     x21, .Lcfg_model_top
+    cbz     x21, .Lcfg_model_no_provider_obj
     mov     x0, x21
     adrp    x1, _str_key_model@PAGE
     add     x1, x1, _str_key_model@PAGEOFF
     bl      _json_find_key
     cbz     x0, .Lcfg_model_top
+    cbz     x1, .Lcfg_model_top
     str     x0, [x23, #CFG_MODEL]
     str     x1, [x23, #(CFG_MODEL + 8)]
     b       .Lcfg_parse_base_url
+
+.Lcfg_model_no_provider_obj:
+    cmp     x22, #-1
+    b.eq    .Lcfg_model_env
+    b       .Lcfg_model_top
 
 .Lcfg_model_top:
     mov     x0, x19
     adrp    x1, _str_key_model@PAGE
     add     x1, x1, _str_key_model@PAGEOFF
     bl      _json_find_key
+    cbz     x0, .Lcfg_model_env
+    cbz     x1, .Lcfg_model_env
+    str     x0, [x23, #CFG_MODEL]
+    str     x1, [x23, #(CFG_MODEL + 8)]
+    b       .Lcfg_parse_base_url
+
+.Lcfg_model_env:
+    // Fallback to provider-specific model env var.
+    mov     x0, x26
+    bl      .Lcfg_env_model_for_provider
+    cbz     x0, .Lcfg_model_env_llm
+    str     x0, [x23, #CFG_MODEL]
+    str     x1, [x23, #(CFG_MODEL + 8)]
+    b       .Lcfg_parse_base_url
+
+.Lcfg_model_env_llm:
+    adrp    x0, _str_env_llm_model@PAGE
+    add     x0, x0, _str_env_llm_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    cbz     x0, .Lcfg_model_env_model
+    str     x0, [x23, #CFG_MODEL]
+    str     x1, [x23, #(CFG_MODEL + 8)]
+    b       .Lcfg_parse_base_url
+
+.Lcfg_model_env_model:
+    adrp    x0, _str_env_model@PAGE
+    add     x0, x0, _str_env_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
     cbz     x0, .Lcfg_model_default_map
     str     x0, [x23, #CFG_MODEL]
     str     x1, [x23, #(CFG_MODEL + 8)]
@@ -217,23 +289,52 @@ _config_load:
     str     x0, [x23, #(CFG_MODEL + 8)]
 
 .Lcfg_parse_base_url:
-    cbz     x21, .Lcfg_base_url_top
+    cbz     x21, .Lcfg_base_url_no_provider_obj
     mov     x0, x21
     adrp    x1, _str_key_base_url@PAGE
     add     x1, x1, _str_key_base_url@PAGEOFF
     bl      _json_find_key
     cbz     x0, .Lcfg_base_url_top
+    cbz     x1, .Lcfg_base_url_top
     bl      .Lcfg_copy_string
     cbz     x0, .Lcfg_no_apikey
     str     x0, [x23, #CFG_BASE_URL]
     str     x1, [x23, #(CFG_BASE_URL + 8)]
     b       .Lcfg_parse_temperature
 
+.Lcfg_base_url_no_provider_obj:
+    cmp     x22, #-1
+    b.eq    .Lcfg_base_url_env
+    b       .Lcfg_base_url_top
+
 .Lcfg_base_url_top:
     mov     x0, x19
     adrp    x1, _str_key_base_url@PAGE
     add     x1, x1, _str_key_base_url@PAGEOFF
     bl      _json_find_key
+    cbz     x0, .Lcfg_base_url_env
+    cbz     x1, .Lcfg_base_url_env
+    bl      .Lcfg_copy_string
+    cbz     x0, .Lcfg_no_apikey
+    str     x0, [x23, #CFG_BASE_URL]
+    str     x1, [x23, #(CFG_BASE_URL + 8)]
+    b       .Lcfg_parse_temperature
+
+.Lcfg_base_url_env:
+    // Fallback to provider-specific base URL env var.
+    mov     x0, x26
+    bl      .Lcfg_env_base_url_for_provider
+    cbz     x0, .Lcfg_base_url_env_global
+    bl      .Lcfg_copy_string
+    cbz     x0, .Lcfg_no_apikey
+    str     x0, [x23, #CFG_BASE_URL]
+    str     x1, [x23, #(CFG_BASE_URL + 8)]
+    b       .Lcfg_parse_temperature
+
+.Lcfg_base_url_env_global:
+    adrp    x0, _str_env_base_url@PAGE
+    add     x0, x0, _str_env_base_url@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
     cbz     x0, .Lcfg_base_url_default_map
     bl      .Lcfg_copy_string
     cbz     x0, .Lcfg_no_apikey
@@ -293,13 +394,18 @@ _config_load:
     str     d0, [x23, #CFG_TEMP]
 
     // Provider-specific temperature first.
-    cbz     x21, .Lcfg_temp_top
+    cbz     x21, .Lcfg_temp_no_provider_obj
     mov     x0, x21
     adrp    x1, _str_key_temperature@PAGE
     add     x1, x1, _str_key_temperature@PAGEOFF
     bl      _json_find_key
     cbz     x0, .Lcfg_temp_top
     b       .Lcfg_temp_parse_value
+
+.Lcfg_temp_no_provider_obj:
+    cmp     x22, #-1
+    b.eq    .Lcfg_validate_and_finish
+    b       .Lcfg_temp_top
 
 .Lcfg_temp_top:
     mov     x0, x19
@@ -405,6 +511,351 @@ _config_load:
     ldp     x21, x22, [sp, #32]
     ldp     x19, x20, [sp, #16]
     ldp     x29, x30, [sp], #80
+    ret
+
+// x0=env var name => x0=value ptr, x1=len (or 0,0 if missing/empty)
+.Lcfg_getenv_nonempty:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+
+    bl      _getenv
+    cbz     x0, .Lcfg_getenv_none
+    mov     x19, x0
+    mov     x0, x19
+    bl      _strlen_simd
+    cbz     x0, .Lcfg_getenv_none
+    mov     x1, x0
+    mov     x0, x19
+    b       .Lcfg_getenv_done
+
+.Lcfg_getenv_none:
+    mov     x0, #0
+    mov     x1, #0
+
+.Lcfg_getenv_done:
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
+    ret
+
+// x0=provider cstr, x1=config ptr, x2=temp provider buffer => x0=1 success, 0 fail
+.Lcfg_set_provider_name:
+    stp     x29, x30, [sp, #-48]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+
+    mov     x19, x0                     // provider ptr
+    mov     x20, x1                     // config ptr
+    mov     x21, x2                     // temp buffer
+    cbz     x19, .Lcfg_set_provider_fail
+
+    str     x19, [x20, #CFG_PROVIDER]
+    mov     x0, x19
+    bl      _strlen_simd
+    cbz     x0, .Lcfg_set_provider_fail
+    str     x0, [x20, #(CFG_PROVIDER + 8)]
+    mov     x22, x0
+    cmp     x22, #120
+    b.gt    .Lcfg_set_provider_fail
+
+    mov     x0, x21
+    mov     x1, x19
+    mov     x2, x22
+    bl      _memcpy_simd
+    strb    wzr, [x21, x22]
+
+    mov     x0, #1
+    b       .Lcfg_set_provider_done
+
+.Lcfg_set_provider_fail:
+    mov     x0, #0
+
+.Lcfg_set_provider_done:
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #48
+    ret
+
+// x0=provider cstr => x0=api_key ptr, x1=len (or 0,0)
+.Lcfg_env_api_key_for_provider:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    mov     x19, x0
+
+    mov     x0, x19
+    adrp    x1, _str_provider_anthropic@PAGE
+    add     x1, x1, _str_provider_anthropic@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_key_anthropic
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openai@PAGE
+    add     x1, x1, _str_provider_openai@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_key_openai
+
+    mov     x0, x19
+    adrp    x1, _str_provider_deepseek@PAGE
+    add     x1, x1, _str_provider_deepseek@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_key_deepseek
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openrouter@PAGE
+    add     x1, x1, _str_provider_openrouter@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_key_openrouter
+
+    mov     x0, #0
+    mov     x1, #0
+    b       .Lcfg_env_key_done
+
+.Lcfg_env_key_anthropic:
+    adrp    x0, _str_env_anthropic_api_key@PAGE
+    add     x0, x0, _str_env_anthropic_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_key_done
+
+.Lcfg_env_key_openai:
+    adrp    x0, _str_env_openai_api_key@PAGE
+    add     x0, x0, _str_env_openai_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_key_done
+
+.Lcfg_env_key_deepseek:
+    adrp    x0, _str_env_deepseek_api_key@PAGE
+    add     x0, x0, _str_env_deepseek_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_key_done
+
+.Lcfg_env_key_openrouter:
+    adrp    x0, _str_env_openrouter_api_key@PAGE
+    add     x0, x0, _str_env_openrouter_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+
+.Lcfg_env_key_done:
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
+    ret
+
+// x0=config ptr, x1=temp provider buffer => x0=api_key ptr, x1=len (or 0,0)
+.Lcfg_env_select_provider_key:
+    stp     x29, x30, [sp, #-80]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    stp     x21, x22, [sp, #32]
+    stp     x23, x24, [sp, #48]
+    str     x25, [sp, #64]
+
+    mov     x19, x0                     // config ptr
+    mov     x20, x1                     // temp provider buffer
+
+    adrp    x0, _str_env_openrouter_api_key@PAGE
+    add     x0, x0, _str_env_openrouter_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    cbz     x0, .Lcfg_env_sel_openai
+    mov     x21, x0
+    mov     x22, x1
+    adrp    x0, _str_provider_openrouter@PAGE
+    add     x0, x0, _str_provider_openrouter@PAGEOFF
+    mov     x1, x19
+    mov     x2, x20
+    bl      .Lcfg_set_provider_name
+    cbz     x0, .Lcfg_env_sel_openai
+    mov     x0, x21
+    mov     x1, x22
+    b       .Lcfg_env_sel_done
+
+.Lcfg_env_sel_openai:
+    adrp    x0, _str_env_openai_api_key@PAGE
+    add     x0, x0, _str_env_openai_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    cbz     x0, .Lcfg_env_sel_anthropic
+    mov     x21, x0
+    mov     x22, x1
+    adrp    x0, _str_provider_openai@PAGE
+    add     x0, x0, _str_provider_openai@PAGEOFF
+    mov     x1, x19
+    mov     x2, x20
+    bl      .Lcfg_set_provider_name
+    cbz     x0, .Lcfg_env_sel_anthropic
+    mov     x0, x21
+    mov     x1, x22
+    b       .Lcfg_env_sel_done
+
+.Lcfg_env_sel_anthropic:
+    adrp    x0, _str_env_anthropic_api_key@PAGE
+    add     x0, x0, _str_env_anthropic_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    cbz     x0, .Lcfg_env_sel_deepseek
+    mov     x21, x0
+    mov     x22, x1
+    adrp    x0, _str_provider_anthropic@PAGE
+    add     x0, x0, _str_provider_anthropic@PAGEOFF
+    mov     x1, x19
+    mov     x2, x20
+    bl      .Lcfg_set_provider_name
+    cbz     x0, .Lcfg_env_sel_deepseek
+    mov     x0, x21
+    mov     x1, x22
+    b       .Lcfg_env_sel_done
+
+.Lcfg_env_sel_deepseek:
+    adrp    x0, _str_env_deepseek_api_key@PAGE
+    add     x0, x0, _str_env_deepseek_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    cbz     x0, .Lcfg_env_sel_generic
+    mov     x21, x0
+    mov     x22, x1
+    adrp    x0, _str_provider_deepseek@PAGE
+    add     x0, x0, _str_provider_deepseek@PAGEOFF
+    mov     x1, x19
+    mov     x2, x20
+    bl      .Lcfg_set_provider_name
+    cbz     x0, .Lcfg_env_sel_generic
+    mov     x0, x21
+    mov     x1, x22
+    b       .Lcfg_env_sel_done
+
+.Lcfg_env_sel_generic:
+    adrp    x0, _str_env_api_key@PAGE
+    add     x0, x0, _str_env_api_key@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+
+.Lcfg_env_sel_done:
+    ldr     x25, [sp, #64]
+    ldp     x23, x24, [sp, #48]
+    ldp     x21, x22, [sp, #32]
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #80
+    ret
+
+// x0=provider cstr => x0=model ptr, x1=len (or 0,0)
+.Lcfg_env_model_for_provider:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    mov     x19, x0
+
+    mov     x0, x19
+    adrp    x1, _str_provider_anthropic@PAGE
+    add     x1, x1, _str_provider_anthropic@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_model_anthropic
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openai@PAGE
+    add     x1, x1, _str_provider_openai@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_model_openai
+
+    mov     x0, x19
+    adrp    x1, _str_provider_deepseek@PAGE
+    add     x1, x1, _str_provider_deepseek@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_model_deepseek
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openrouter@PAGE
+    add     x1, x1, _str_provider_openrouter@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_model_openrouter
+
+    mov     x0, #0
+    mov     x1, #0
+    b       .Lcfg_env_model_done
+
+.Lcfg_env_model_anthropic:
+    adrp    x0, _str_env_anthropic_model@PAGE
+    add     x0, x0, _str_env_anthropic_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_model_done
+
+.Lcfg_env_model_openai:
+    adrp    x0, _str_env_openai_model@PAGE
+    add     x0, x0, _str_env_openai_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_model_done
+
+.Lcfg_env_model_deepseek:
+    adrp    x0, _str_env_deepseek_model@PAGE
+    add     x0, x0, _str_env_deepseek_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_model_done
+
+.Lcfg_env_model_openrouter:
+    adrp    x0, _str_env_openrouter_model@PAGE
+    add     x0, x0, _str_env_openrouter_model@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+
+.Lcfg_env_model_done:
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
+    ret
+
+// x0=provider cstr => x0=base_url ptr, x1=len (or 0,0)
+.Lcfg_env_base_url_for_provider:
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+    mov     x19, x0
+
+    mov     x0, x19
+    adrp    x1, _str_provider_anthropic@PAGE
+    add     x1, x1, _str_provider_anthropic@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_url_anthropic
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openai@PAGE
+    add     x1, x1, _str_provider_openai@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_url_openai
+
+    mov     x0, x19
+    adrp    x1, _str_provider_deepseek@PAGE
+    add     x1, x1, _str_provider_deepseek@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_url_deepseek
+
+    mov     x0, x19
+    adrp    x1, _str_provider_openrouter@PAGE
+    add     x1, x1, _str_provider_openrouter@PAGEOFF
+    bl      _str_equal
+    cbnz    x0, .Lcfg_env_url_openrouter
+
+    mov     x0, #0
+    mov     x1, #0
+    b       .Lcfg_env_url_done
+
+.Lcfg_env_url_anthropic:
+    adrp    x0, _str_env_anthropic_base_url@PAGE
+    add     x0, x0, _str_env_anthropic_base_url@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_url_done
+
+.Lcfg_env_url_openai:
+    adrp    x0, _str_env_openai_base_url@PAGE
+    add     x0, x0, _str_env_openai_base_url@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_url_done
+
+.Lcfg_env_url_deepseek:
+    adrp    x0, _str_env_deepseek_base_url@PAGE
+    add     x0, x0, _str_env_deepseek_base_url@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+    b       .Lcfg_env_url_done
+
+.Lcfg_env_url_openrouter:
+    adrp    x0, _str_env_openrouter_base_url@PAGE
+    add     x0, x0, _str_env_openrouter_base_url@PAGEOFF
+    bl      .Lcfg_getenv_nonempty
+
+.Lcfg_env_url_done:
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
     ret
 
 // x0=source ptr, x1=source len => x0=arena copy ptr, x1=len (or 0,0 on OOM)
@@ -621,6 +1072,41 @@ _str_provider_openai:
     .asciz  "openai"
 _str_provider_deepseek:
     .asciz  "deepseek"
+_str_provider_openrouter:
+    .asciz  "openrouter"
+
+_str_env_openrouter_api_key:
+    .asciz  "OPENROUTER_API_KEY"
+_str_env_openrouter_model:
+    .asciz  "OPENROUTER_MODEL"
+_str_env_openrouter_base_url:
+    .asciz  "OPENROUTER_BASE_URL"
+_str_env_openai_api_key:
+    .asciz  "OPENAI_API_KEY"
+_str_env_openai_model:
+    .asciz  "OPENAI_MODEL"
+_str_env_openai_base_url:
+    .asciz  "OPENAI_BASE_URL"
+_str_env_anthropic_api_key:
+    .asciz  "ANTHROPIC_API_KEY"
+_str_env_anthropic_model:
+    .asciz  "ANTHROPIC_MODEL"
+_str_env_anthropic_base_url:
+    .asciz  "ANTHROPIC_BASE_URL"
+_str_env_deepseek_api_key:
+    .asciz  "DEEPSEEK_API_KEY"
+_str_env_deepseek_model:
+    .asciz  "DEEPSEEK_MODEL"
+_str_env_deepseek_base_url:
+    .asciz  "DEEPSEEK_BASE_URL"
+_str_env_api_key:
+    .asciz  "API_KEY"
+_str_env_model:
+    .asciz  "MODEL"
+_str_env_llm_model:
+    .asciz  "LLM_MODEL"
+_str_env_base_url:
+    .asciz  "BASE_URL"
 _str_http_prefix:
     .asciz  "http://"
 _str_https_prefix:

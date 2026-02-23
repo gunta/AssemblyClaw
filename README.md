@@ -3,7 +3,7 @@
 **The world's smallest and fastest AI agent infrastructure. Pure ARM64 assembly.**
 
 ```
-36 KB binary · 7 ms startup (--help) · 5 MB peak RSS · libSystem + libcurl
+35 KB binary · 4 ms startup (--help) · 1 MB peak RSS · libSystem + libcurl
 ```
 
 ## Why
@@ -14,7 +14,7 @@ way to iterate and get community hooked. Ship value first, then optimize.
 The natural progression:
 1. **TypeScript** — ship fast, build community, iterate
 2. **Zig** — harden it, single binary, zero overhead
-3. **ARM64 Assembly** — absolute minimum, prove the point (AssemblyClaw: 36 KB now, targeting < 32 KB)
+3. **ARM64 Assembly** — absolute minimum, prove the point (AssemblyClaw: 35 KB now, targeting < 32 KB)
 
 This project proves that with the spec in hand, AI coding agents can write and
 maintain even assembly. The future is Bend (GPU parallelism), Lean 4 (zero bugs),
@@ -23,16 +23,16 @@ and languages we haven't invented yet.
 ## Benchmark
 
 Latest measured run (source of truth: `site/public/benchmarks.json`):
-- **Run date (UTC):** 2026-02-23T21:43:33.903Z
+- **Run date (UTC):** 2026-02-23T22:15:01.514Z
 - **Machine:** Mac16,5 (Apple M4 Max, 64 GB RAM)
 - **OS:** macOS 26.3 (build 25D125)
 - **Method:** `hyperfine --shell=none --warmup 10 --min-runs 50 --time-unit millisecond ./build/assemblyclaw --help` + `/usr/bin/time -l ./build/assemblyclaw --help`
 
 | | OpenClaw (TS) | NullClaw (Zig) | CClaw (C) | **AssemblyClaw (ARM64)** |
 |---|---|---|---|---|
-| **Binary** | 41 MB | 2 MB | 143 KB | **36 KB** |
-| **RAM** | 372 MB | 1 MB | 5 MB | **5 MB** |
-| **Startup** | 821 ms | 5 ms | 8 ms | **7 ms** |
+| **Binary** | 41 MB | 2 MB | 143 KB | **35 KB** |
+| **RAM** | 359 MB | 1 MB | 5 MB | **1 MB** |
+| **Startup** | 842 ms | 5 ms | 8 ms | **4 ms** |
 | **Language** | TypeScript | Zig | C | **ARM64 Assembly** |
 | **Cost** | Mac Mini $599 | Any $5 hardware | Any $10 hardware | **Any $1 hardware** |
 
@@ -54,7 +54,7 @@ Comparison provenance for this run:
 - CClaw latest upstream fetch/build from `https://github.com/aresbit/cclaw.git` (or `CCLAW_REPO_URL` override, with local snapshot fallback)
 
 > Currently targeting Apple Silicon (M4 Pro/Max) because that's what I have.
-> Even at 36 KB today (and targeting < 32 KB) with pure ARM64, there's nothing stopping this from running on
+> Even at 35 KB today (and targeting < 32 KB) with pure ARM64, there's nothing stopping this from running on
 > the cheapest ARM board that exists. This is about what's *possible*.
 
 ## Install

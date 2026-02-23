@@ -48,6 +48,7 @@ const NAMES: Record<string, string> = {
   "5.3": "malformed config handling",
   "5.4": "missing required fields validation",
   "5.5": "default values applied",
+  "5.7": "env fallback for provider/api key",
   "6.1": "successful POST request",
   "6.2": "JSON content-type header",
   "6.3": "auth headers sent",
@@ -61,6 +62,25 @@ const NAMES: Record<string, string> = {
   "8.1": "single message mode",
   "8.2": "status command",
   "8.3": "empty message error",
+};
+
+const SANITIZED_MODEL_ENV: Record<string, string> = {
+  OPENAI_API_KEY: "",
+  OPENAI_MODEL: "",
+  OPENAI_BASE_URL: "",
+  ANTHROPIC_API_KEY: "",
+  ANTHROPIC_MODEL: "",
+  ANTHROPIC_BASE_URL: "",
+  OPENROUTER_API_KEY: "",
+  OPENROUTER_MODEL: "",
+  OPENROUTER_BASE_URL: "",
+  DEEPSEEK_API_KEY: "",
+  DEEPSEEK_MODEL: "",
+  DEEPSEEK_BASE_URL: "",
+  API_KEY: "",
+  MODEL: "",
+  LLM_MODEL: "",
+  BASE_URL: "",
 };
 
 function decode(buf: Uint8Array | Buffer | null | undefined): string {
@@ -82,15 +102,24 @@ function runCmd(cmd: string[], env?: Record<string, string>) {
   };
 }
 
-function runBinary(args: string[], home?: string) {
-  const env = home ? { HOME: home } : undefined;
-  return runCmd([BIN, ...args], env);
+function runBinary(args: string[], home?: string, env?: Record<string, string>) {
+  const mergedEnv = {
+    ...SANITIZED_MODEL_ENV,
+    ...(home ? { HOME: home } : {}),
+    ...(env ?? {}),
+  };
+  return runCmd([BIN, ...args], mergedEnv);
 }
 
-async function runBinaryAsync(args: string[], home?: string) {
+async function runBinaryAsync(args: string[], home?: string, env?: Record<string, string>) {
   const proc = Bun.spawn([BIN, ...args], {
     cwd: ROOT,
-    env: { ...process.env, ...(home ? { HOME: home } : {}) },
+    env: {
+      ...process.env,
+      ...SANITIZED_MODEL_ENV,
+      ...(home ? { HOME: home } : {}),
+      ...(env ?? {}),
+    },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -311,6 +340,21 @@ const results: Result[] = [];
       r55.code === 0 &&
       r55.out.includes("provider: openai") &&
       r55.out.includes("model:    gpt-4.1-mini"),
+  });
+
+  const homeEnvFallback = makeHome({
+    default_provider: "openrouter",
+    providers: {
+      openrouter: {
+        api_key: "",
+      },
+    },
+  });
+  const r57 = runBinary(["status"], homeEnvFallback, { OPENAI_API_KEY: "sk-env-fallback" });
+  results.push({
+    id: "5.7",
+    name: NAMES["5.7"],
+    pass: r57.code === 0 && r57.out.includes("config:   loaded") && r57.out.includes("provider: openai"),
   });
 }
 

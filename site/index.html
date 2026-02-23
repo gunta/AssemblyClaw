@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AssemblyClaw — The world's smallest AI agent infrastructure</title>
-  <meta name="description" content="Pure ARM64 assembly AI agent. Latest measured: 36 KB binary, 7 ms startup, 5 MB peak RSS.">
+  <meta name="description" content="Pure ARM64 assembly AI agent. Latest measured: 35 KB binary, 4 ms startup, 1 MB peak RSS.">
   <meta property="og:title" content="AssemblyClaw — Pure ARM64 Assembly AI Agent">
-  <meta property="og:description" content="Pure ARM64 assembly AI agent. Latest measured: 36 KB binary, 7 ms startup, 5 MB peak RSS.">
+  <meta property="og:description" content="Pure ARM64 assembly AI agent. Latest measured: 35 KB binary, 4 ms startup, 1 MB peak RSS.">
   <meta property="og:type" content="website">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,25 +54,25 @@
         <span class="hero-line">AI agent.</span>
       </h1>
       <p class="hero-sub reveal">
-        Pure ARM64 assembly. Zero dependencies beyond libSystem.<br>
+        Pure <span class="term" data-term="arm64">ARM64</span> assembly. Zero dependencies beyond <span class="term" data-term="libsystem">libSystem</span>.<br>
         Built to prove that assembly is within reach when you have a spec and an AI.
       </p>
 
       <div class="hero-stats reveal">
         <div class="stat">
-          <span class="stat-value" id="bench-hero-binary">36</span>
+          <span class="stat-value" id="bench-hero-binary">35</span>
           <span class="stat-unit">KB</span>
           <span class="stat-label">Binary</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-value" id="bench-hero-startup">7</span>
+          <span class="stat-value" id="bench-hero-startup">4</span>
           <span class="stat-unit">ms</span>
           <span class="stat-label">Startup</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-value" id="bench-hero-ram">5568</span>
+          <span class="stat-value" id="bench-hero-ram">1328</span>
           <span class="stat-unit">KB</span>
           <span class="stat-label">RAM</span>
         </div>
@@ -136,7 +136,7 @@
           </div>
           <div class="step-content">
             <h3>Zig</h3>
-            <p>Harden it, single binary, zero overhead.</p>
+            <p>Harden it, <span class="term" data-term="single-binary">single binary</span>, zero overhead.</p>
             <span class="step-size">678 KB</span>
           </div>
         </div>
@@ -158,7 +158,7 @@
           <div class="step-content">
             <h3>ARM64 Assembly</h3>
             <p>Absolute minimum, prove the point.</p>
-            <span class="step-size step-size--hero" id="bench-progression-asm-size">36 KB</span>
+            <span class="step-size step-size--hero" id="bench-progression-asm-size">35 KB</span>
           </div>
         </div>
       </div>
@@ -203,24 +203,24 @@
           <h3 class="benchmark-card-title">Binary Size</h3>
           <div class="bars">
             <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="typescript">
-              <span class="bar-label">TypeScript</span>
+              <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
               <span class="bar-value" data-bench-value>41 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="zig">
-              <span class="bar-label">Zig</span>
+              <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="45" data-color="zig"></div></div>
               <span class="bar-value" data-bench-value>2 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="c">
-              <span class="bar-label">C</span>
+              <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="25" data-color="c"></div></div>
               <span class="bar-value" data-bench-value>143 KB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="assembly">
-              <span class="bar-label">Assembly</span>
+              <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
               <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="8" data-color="asm"></div></div>
-              <span class="bar-value bar-value--hero" data-bench-value>36 KB</span>
+              <span class="bar-value bar-value--hero" data-bench-value>35 KB</span>
             </div>
           </div>
         </div>
@@ -230,24 +230,24 @@
           <h3 class="benchmark-card-title">RAM Usage</h3>
           <div class="bars">
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="typescript">
-              <span class="bar-label">TypeScript</span>
+              <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
-              <span class="bar-value" data-bench-value>372 MB</span>
+              <span class="bar-value" data-bench-value>359 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="zig">
-              <span class="bar-label">Zig</span>
+              <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="30" data-color="zig"></div></div>
               <span class="bar-value" data-bench-value>1 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="c">
-              <span class="bar-label">C</span>
+              <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="20" data-color="c"></div></div>
               <span class="bar-value" data-bench-value>5 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="assembly">
-              <span class="bar-label">Assembly</span>
+              <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
               <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="6" data-color="asm"></div></div>
-              <span class="bar-value bar-value--hero" data-bench-value>5 MB</span>
+              <span class="bar-value bar-value--hero" data-bench-value>1 MB</span>
             </div>
           </div>
         </div>
@@ -257,24 +257,24 @@
           <h3 class="benchmark-card-title">Startup Time</h3>
           <div class="bars">
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="typescript">
-              <span class="bar-label">TypeScript</span>
+              <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
-              <span class="bar-value" data-bench-value>821 ms</span>
+              <span class="bar-value" data-bench-value>842 ms</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="zig">
-              <span class="bar-label">Zig</span>
+              <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="18" data-color="zig"></div></div>
               <span class="bar-value" data-bench-value>5 ms</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="c">
-              <span class="bar-label">C</span>
+              <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="25" data-color="c"></div></div>
               <span class="bar-value" data-bench-value>8 ms</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="assembly">
-              <span class="bar-label">Assembly</span>
+              <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
               <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="4" data-color="asm"></div></div>
-              <span class="bar-value bar-value--hero" data-bench-value>7 ms</span>
+              <span class="bar-value bar-value--hero" data-bench-value>4 ms</span>
             </div>
           </div>
         </div>
@@ -284,22 +284,22 @@
           <h3 class="benchmark-card-title">Hardware Cost</h3>
           <div class="bars">
             <div class="bar-row">
-              <span class="bar-label">TypeScript</span>
+              <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
               <span class="bar-value">$599</span>
             </div>
             <div class="bar-row">
-              <span class="bar-label">Zig</span>
+              <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-width="25" data-color="zig"></div></div>
               <span class="bar-value">$5</span>
             </div>
             <div class="bar-row">
-              <span class="bar-label">C</span>
+              <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-width="36" data-color="c"></div></div>
               <span class="bar-value">$10</span>
             </div>
             <div class="bar-row">
-              <span class="bar-label">Assembly</span>
+              <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
               <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="5" data-color="asm"></div></div>
               <span class="bar-value bar-value--hero">$1</span>
             </div>
@@ -350,40 +350,40 @@
         Pure silicon<br><em>craftsmanship.</em>
       </h2>
       <p class="section-description reveal">
-        Optimized for Apple Silicon M4/M5 Pro/Max. Every instruction chosen with purpose.
+        Optimized for <span class="term" data-term="apple-silicon">Apple Silicon</span> M4/M5 Pro/Max. Every instruction chosen with purpose.
       </p>
 
       <div class="arch-grid">
         <div class="arch-features">
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">⚡</div>
-            <h4>NEON SIMD</h4>
-            <p>16 bytes/cycle string scanning with CMEQ + UMAXV vector instructions</p>
+            <h4><span class="term" data-term="neon-simd">NEON SIMD</span></h4>
+            <p>16 bytes/cycle string scanning with <span class="term" data-term="cmeq">CMEQ</span> + <span class="term" data-term="umaxv">UMAXV</span> <span class="term" data-term="vector-instructions">vector instructions</span></p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">◎</div>
-            <h4>Cache-Aligned</h4>
-            <p>128-byte alignment tuned for M4 cache lines</p>
+            <h4><span class="term" data-term="cache-aligned">Cache-Aligned</span></h4>
+            <p>128-byte alignment tuned for M4 <span class="term" data-term="cache-lines">cache lines</span></p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">⎇</div>
-            <h4>Branchless</h4>
-            <p>CSEL/CSETM for conditional operations — no branch prediction misses</p>
+            <h4><span class="term" data-term="branchless">Branchless</span></h4>
+            <p><span class="term" data-term="csel">CSEL</span>/<span class="term" data-term="csetm">CSETM</span> for conditional operations — no <span class="term" data-term="branch-prediction">branch prediction</span> misses</p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">▦</div>
-            <h4>Arena Allocator</h4>
-            <p>mmap-backed memory, zero fragmentation</p>
+            <h4><span class="term" data-term="arena-allocator">Arena Allocator</span></h4>
+            <p><span class="term" data-term="mmap">mmap</span>-backed memory, zero <span class="term" data-term="fragmentation">fragmentation</span></p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">≡</div>
-            <h4>Zero-Copy Strings</h4>
-            <p>ptr+len views with no NUL terminator overhead</p>
+            <h4><span class="term" data-term="zero-copy">Zero-Copy Strings</span></h4>
+            <p><span class="term" data-term="ptr-len">ptr+len</span> views with no <span class="term" data-term="nul-terminator">NUL terminator</span> overhead</p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon">⊕</div>
-            <h4>Direct Syscalls</h4>
-            <p>libSystem FFI — no libc wrapper tax</p>
+            <h4>Direct <span class="term" data-term="syscalls">Syscalls</span></h4>
+            <p><span class="term" data-term="libsystem">libSystem</span> <span class="term" data-term="ffi">FFI</span> — no <span class="term" data-term="libc">libc</span> wrapper tax</p>
           </div>
         </div>
 
