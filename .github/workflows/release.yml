@@ -13,6 +13,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build release binary
         run: ninja
@@ -44,12 +46,12 @@ jobs:
           echo "SHA256:  ${SHA256}"
 
           # ── Update formula in this repo ──
+          git checkout main
           sed -i '' "s|url \".*\.tar\.gz\"|url \"${TARBALL_URL}\"|" Formula/assemblyclaw.rb
           sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/assemblyclaw.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
           git add Formula/assemblyclaw.rb
           if ! git diff --cached --quiet; then
             git commit -m "formula: update to ${TAG}"
