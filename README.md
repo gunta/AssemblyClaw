@@ -3,7 +3,7 @@
 **The world's smallest and fastest AI agent infrastructure. Pure ARM64 assembly.**
 
 ```
-36 KB binary · 6 ms startup (--help) · 5 MB peak RSS · libSystem + libcurl
+36 KB binary · 7 ms startup (--help) · 5 MB peak RSS · libSystem + libcurl
 ```
 
 ## Why
@@ -23,7 +23,7 @@ and languages we haven't invented yet.
 ## Benchmark
 
 Latest measured run (source of truth: `site/public/benchmarks.json`):
-- **Run date (UTC):** 2026-02-23T21:38:56.880Z
+- **Run date (UTC):** 2026-02-23T21:43:33.903Z
 - **Machine:** Mac16,5 (Apple M4 Max, 64 GB RAM)
 - **OS:** macOS 26.3 (build 25D125)
 - **Method:** `hyperfine --shell=none --warmup 10 --min-runs 50 --time-unit millisecond ./build/assemblyclaw --help` + `/usr/bin/time -l ./build/assemblyclaw --help`
@@ -32,7 +32,7 @@ Latest measured run (source of truth: `site/public/benchmarks.json`):
 |---|---|---|---|---|
 | **Binary** | 41 MB | 2 MB | 143 KB | **36 KB** |
 | **RAM** | 372 MB | 1 MB | 5 MB | **5 MB** |
-| **Startup** | 1163 ms | 8 ms | 11 ms | **6 ms** |
+| **Startup** | 821 ms | 5 ms | 8 ms | **7 ms** |
 | **Language** | TypeScript | Zig | C | **ARM64 Assembly** |
 | **Cost** | Mac Mini $599 | Any $5 hardware | Any $10 hardware | **Any $1 hardware** |
 
@@ -46,7 +46,7 @@ Targets remain:
 Comparison provenance for this run:
 - OpenClaw measured from `openclaw@latest` CLI package (`2026.2.22-2`)
 - NullClaw measured from latest release binary (`nullclaw 2026.2.21`, tag `v2026.2.21`)
-- CClaw measured from local `context/cclaw-main` snapshot (`CClaw 0.1.0`)
+- CClaw measured from latest `aresbit/cclaw` git snapshot (`CClaw 0.1.0`, commit `1eab2d0`)
 
 `bun bench.ts` now automates comparator fetch/build/benchmark:
 - OpenClaw package install/update

@@ -615,6 +615,7 @@ if (!quick) {
 }
 
 let comparatorMetrics: ComparatorMetrics[] = [];
+let assemblyComparatorStartupMs: number | null = null;
 
 if (doComparators) {
   section("Comparator Setup");
@@ -642,6 +643,7 @@ if (doComparators) {
   );
 
   const means = await readHyperfineMeans(BENCH_COMPARE_JSON);
+  assemblyComparatorStartupMs = means.get("assemblyclaw") ?? null;
   const openclawStartup = means.get("openclaw");
   const nullclawStartup = means.get("nullclaw");
   const cclawStartup = means.get("cclaw");
@@ -699,10 +701,11 @@ if (doComparators) {
 
 section("Summary");
 console.log();
+const summaryStartupMs = assemblyComparatorStartupMs ?? startupHelpMs;
 console.log(`  ${bold("AssemblyClaw")}`);
 console.log(`  Binary: ${green(sizeKB !== null ? formatStorageDisplay(sizeKB) : "?")}`);
 console.log(`  RAM:    ${green(rssKB !== null ? formatStorageDisplay(rssKB) : "?")}`);
-console.log(`  Start:  ${green(startupHelpMs !== null ? formatMsDisplay(startupHelpMs) : "?")}`);
+console.log(`  Start:  ${green(summaryStartupMs !== null ? formatMsDisplay(summaryStartupMs) : "?")}`);
 console.log();
 console.log(`  ${bold("Targets")}`);
 console.log(`  Binary: < ${targets.binaryKB} KB`);
@@ -718,7 +721,8 @@ if (doExport) {
   const compareMeans = existsSync(BENCH_COMPARE_JSON)
     ? await readHyperfineMeans(BENCH_COMPARE_JSON)
     : new Map<string, number>();
-  const assemblyStartupMs = compareMeans.get("assemblyclaw") ?? startupHelpMs;
+  const assemblyStartupMs =
+    assemblyComparatorStartupMs ?? compareMeans.get("assemblyclaw") ?? startupHelpMs;
 
   if (assemblyRssKB == null || assemblyStartupMs == null) {
     throw new Error("assembly metrics unavailable for JSON export");
