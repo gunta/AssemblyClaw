@@ -12,13 +12,23 @@
 //   CCLAW_REPO_URL=<git-url>        Override default CClaw upstream repo URL
 
 import { $ } from "bun";
-import { existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+
+async function dirExists(path: string): Promise<boolean> {
+  const { exitCode } = Bun.spawnSync(["test", "-d", path]);
+  return exitCode === 0;
+}
 
 const BINARY = "./build/assemblyclaw";
 const BENCH_RAW_JSON = "./build/bench.hyperfine.json";
 const BENCH_COMPARE_JSON = "./build/bench.compare.hyperfine.json";
+const BENCH_COMPARE_VERSION_JSON = "./build/bench.compare.version.hyperfine.json";
+const BENCH_COMPARE_INVALID_JSON = "./build/bench.compare.invalid.hyperfine.json";
+const BENCH_KERNEL_STRLEN_JSON = "./build/bench.kernel.strlen.hyperfine.json";
+const BENCH_KERNEL_JSON_JSON = "./build/bench.kernel.json.hyperfine.json";
 const BENCH_SITE_JSON = "./site/public/benchmarks.json";
+const BENCH_KERNEL_SRC = "./tests/bench_kernels.c";
+const BENCH_KERNEL_BIN = "./build/bench_kernels";
 
 const COMPARATOR_ROOT = "./build/comparators";
 const OPENCLAW_PKG_DIR = join(COMPARATOR_ROOT, "openclaw-pkg");
@@ -49,15 +59,19 @@ const warn = (label: string, value: string) =>
   console.log(`  ${label.padEnd(30)} ${yellow(value)}`);
 
 type LanguageKey = "typescript" | "zig" | "c";
+type ComparatorCommandName = "assemblyclaw" | "openclaw" | "nullclaw" | "cclaw";
 
 type ComparatorMetrics = {
   key: LanguageKey;
+  commandName: Exclude<ComparatorCommandName, "assemblyclaw">;
   name: string;
   version: string;
   source: string;
   binaryKB: number;
   rssKB: number;
   startupMs: number;
+  versionMs: number | null;
+  invalidFlagMs: number | null;
 };
 
 function round(value: number, places: number): number {
@@ -75,6 +89,20 @@ function formatStorageDisplay(kb: number): string {
 function formatMsDisplay(ms: number): string {
   if (!Number.isFinite(ms) || ms < 0) return "—";
   return `${Math.floor(ms)} ms`;
+}
+
+function formatNullableMs(ms: number | null): string {
+  return ms === null ? "—" : formatMsDisplay(ms);
+}
+
+function computeSpeedup(baselineMs: number | null, optimizedMs: number | null): number | null {
+  if (baselineMs == null || optimizedMs == null || optimizedMs <= 0) return null;
+  return baselineMs / optimizedMs;
+}
+
+function formatSpeedup(speedup: number | null): string {
+  if (speedup == null || !Number.isFinite(speedup)) return "—";
+  return `${round(speedup, 2)}x`;
 }
 
 function check(label: string, value: number, target: number, unit: string) {
@@ -106,7 +134,7 @@ function runCapture(
 ) {
   const proc = Bun.spawnSync(cmd, {
     cwd: opts?.cwd,
-    env: { ...process.env, ...(opts?.env ?? {}) },
+    env: { ...Bun.env, ...(opts?.env ?? {}) },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -125,7 +153,7 @@ async function runInherit(
 ) {
   const proc = Bun.spawn(cmd, {
     cwd: opts?.cwd,
-    env: { ...process.env, ...(opts?.env ?? {}) },
+    env: { ...Bun.env, ...(opts?.env ?? {}) },
     stdout: "inherit",
     stderr: "inherit",
   });
@@ -155,7 +183,7 @@ function parseMaxResidentKB(stderrText: string): number | null {
 
 function measureRssKB(argv: string[]): number | null {
   const proc = Bun.spawnSync(["/usr/bin/time", "-l", ...argv], {
-    env: process.env,
+    env: Bun.env,
     stdout: "ignore",
     stderr: "pipe",
   });
@@ -173,7 +201,7 @@ function duKB(path: string): number {
 }
 
 function binarySizeKB(path: string): number {
-  return statSync(path).size / 1024;
+  return Bun.file(path).size / 1024;
 }
 
 async function findHyperfine(): Promise<string> {
@@ -188,7 +216,7 @@ async function findHyperfine(): Promise<string> {
 function findZig(): string {
   for (const candidate of [
     "zig",
-    join(process.env.HOME ?? "", ".proto/tools/zig/0.15.1/zig"),
+    join(Bun.env.HOME ?? "", ".proto/tools/zig/0.15.1/zig"),
     "/opt/homebrew/bin/zig",
     "/usr/local/bin/zig",
   ]) {
@@ -212,9 +240,10 @@ const HF_ARGS = [
 async function bench(
   hyperfinePath: string,
   commands: { name: string; args: string }[],
-  exportJson?: string
+  exportJson?: string,
+  extraArgs: string[] = []
 ) {
-  const args = [...HF_ARGS];
+  const args = [...HF_ARGS, ...extraArgs];
   if (exportJson) args.push("--export-json", exportJson);
   for (const command of commands) args.push("-n", command.name, command.args);
   const proc = Bun.spawn([hyperfinePath, ...args], { stdout: "inherit", stderr: "inherit" });
@@ -223,7 +252,7 @@ async function bench(
 
 async function readHyperfineMeans(exportPath: string): Promise<Map<string, number>> {
   const result = new Map<string, number>();
-  if (!existsSync(exportPath)) return result;
+  if (!(await Bun.file(exportPath).exists())) return result;
   const parsed = (await Bun.file(exportPath).json()) as {
     results?: Array<{ command?: string; mean?: number }>;
   };
@@ -235,19 +264,26 @@ async function readHyperfineMeans(exportPath: string): Promise<Map<string, numbe
   return result;
 }
 
+function readScenarioMs(
+  means: Map<string, number>,
+  commandName: ComparatorCommandName
+): number | null {
+  return means.get(commandName) ?? null;
+}
+
 async function readHyperfineMean(exportPath: string, commandName: string): Promise<number | null> {
   const map = await readHyperfineMeans(exportPath);
   return map.get(commandName) ?? null;
 }
 
 async function ensureGitRepoLatest(repoUrl: string, repoDir: string) {
-  if (!existsSync(repoDir)) {
+  if (!(await dirExists(repoDir))) {
     await runInherit(["git", "clone", "--depth", "1", repoUrl, repoDir]);
     return;
   }
 
-  if (!existsSync(join(repoDir, ".git"))) {
-    rmSync(repoDir, { recursive: true, force: true });
+  if (!(await dirExists(join(repoDir, ".git")))) {
+    await $`rm -rf ${repoDir}`.quiet();
     await runInherit(["git", "clone", "--depth", "1", repoUrl, repoDir]);
     return;
   }
@@ -256,8 +292,8 @@ async function ensureGitRepoLatest(repoUrl: string, repoDir: string) {
   await runInherit(["git", "-C", repoDir, "reset", "--hard", "origin/HEAD"]);
 }
 
-function gitHeadShort(repoDir: string): string | null {
-  if (!existsSync(join(repoDir, ".git"))) return null;
+async function gitHeadShort(repoDir: string): Promise<string | null> {
+  if (!(await dirExists(join(repoDir, ".git")))) return null;
   const { code, out } = runCapture(["git", "-C", repoDir, "rev-parse", "--short", "HEAD"], {
     allowFail: true,
   });
@@ -267,16 +303,17 @@ function gitHeadShort(repoDir: string): string | null {
 }
 
 async function prepareOpenClawComparator(): Promise<{
+  binPath: string;
   argv: string[];
   version: string;
   source: string;
   binaryKB: number;
 }> {
-  mkdirSync(OPENCLAW_PKG_DIR, { recursive: true });
+  await $`mkdir -p ${OPENCLAW_PKG_DIR}`.quiet();
 
   const packageJsonPath = join(OPENCLAW_PKG_DIR, "package.json");
-  if (!existsSync(packageJsonPath)) {
-    writeFileSync(
+  if (!(await Bun.file(packageJsonPath).exists())) {
+    await Bun.write(
       packageJsonPath,
       `${JSON.stringify(
         {
@@ -286,15 +323,14 @@ async function prepareOpenClawComparator(): Promise<{
         },
         null,
         2
-      )}\n`,
-      "utf8"
+      )}\n`
     );
   }
 
   await runInherit(["bun", "add", "openclaw@latest"], { cwd: OPENCLAW_PKG_DIR });
 
   const cliPath = join(OPENCLAW_PKG_DIR, "node_modules", ".bin", "openclaw");
-  if (!existsSync(cliPath)) {
+  if (!(await Bun.file(cliPath).exists())) {
     throw new Error(`openclaw CLI not found at ${cliPath}`);
   }
 
@@ -302,11 +338,12 @@ async function prepareOpenClawComparator(): Promise<{
   const version = firstLine(ver.out) || firstLine(ver.err) || "openclaw (unknown version)";
 
   const distDir = join(OPENCLAW_PKG_DIR, "node_modules", "openclaw", "dist");
-  if (!existsSync(distDir)) {
+  if (!(await dirExists(distDir))) {
     throw new Error(`openclaw dist directory not found: ${distDir}`);
   }
 
   return {
+    binPath: cliPath,
     argv: [cliPath, "--help"],
     version,
     source: "npm openclaw@latest",
@@ -315,13 +352,14 @@ async function prepareOpenClawComparator(): Promise<{
 }
 
 async function prepareNullClawReleaseComparator(): Promise<{
+  binPath: string;
   argv: string[];
   version: string;
   source: string;
   binaryKB: number;
 }> {
   const releaseDir = join(COMPARATOR_ROOT, "nullclaw-release");
-  mkdirSync(releaseDir, { recursive: true });
+  await $`mkdir -p ${releaseDir}`.quiet();
 
   const api = "https://api.github.com/repos/nullclaw/nullclaw/releases/latest";
   const metaRes = await fetch(api, { headers: { Accept: "application/vnd.github+json" } });
@@ -346,13 +384,14 @@ async function prepareNullClawReleaseComparator(): Promise<{
 
   const binaryPath = join(releaseDir, "nullclaw");
   const bytes = await binRes.arrayBuffer();
-  writeFileSync(binaryPath, Buffer.from(bytes));
+  await Bun.write(binaryPath, new Uint8Array(bytes));
   await runInherit(["chmod", "+x", binaryPath]);
 
   const ver = runCapture([binaryPath, "--version"], { allowFail: true });
   const version = firstLine(ver.out) || firstLine(ver.err) || `nullclaw ${tag}`;
 
   return {
+    binPath: binaryPath,
     argv: [binaryPath, "--help"],
     version,
     source: `github release ${tag}`,
@@ -361,6 +400,7 @@ async function prepareNullClawReleaseComparator(): Promise<{
 }
 
 async function prepareNullClawComparator(): Promise<{
+  binPath: string;
   argv: string[];
   version: string;
   source: string;
@@ -373,15 +413,16 @@ async function prepareNullClawComparator(): Promise<{
     await runInherit([zig, "build", "-Doptimize=ReleaseSmall"], { cwd: NULLCLAW_REPO_DIR });
 
     const binaryPath = join(NULLCLAW_REPO_DIR, "zig-out", "bin", "nullclaw");
-    if (!existsSync(binaryPath)) {
+    if (!(await Bun.file(binaryPath).exists())) {
       throw new Error(`nullclaw binary not found: ${binaryPath}`);
     }
 
     const ver = runCapture([binaryPath, "--version"]);
     const version = firstLine(ver.out) || firstLine(ver.err) || "nullclaw (unknown version)";
-    const head = gitHeadShort(NULLCLAW_REPO_DIR);
+    const head = await gitHeadShort(NULLCLAW_REPO_DIR);
 
     return {
+      binPath: binaryPath,
       argv: [binaryPath, "--help"],
       version,
       source: head ? `git ${NULLCLAW_REPO_URL}@${head}` : `git ${NULLCLAW_REPO_URL}`,
@@ -397,21 +438,22 @@ async function prepareNullClawComparator(): Promise<{
 }
 
 async function prepareCClawComparator(): Promise<{
+  binPath: string;
   argv: string[];
   version: string;
   source: string;
   binaryKB: number;
 }> {
-  const repoUrl = process.env.CCLAW_REPO_URL?.trim() || CCLAW_DEFAULT_REPO_URL;
+  const repoUrl = Bun.env.CCLAW_REPO_URL?.trim() || CCLAW_DEFAULT_REPO_URL;
   let repoDir = CCLAW_FETCH_DIR;
   let source = "";
 
   try {
     await ensureGitRepoLatest(repoUrl, CCLAW_FETCH_DIR);
-    const head = gitHeadShort(repoDir);
+    const head = await gitHeadShort(repoDir);
     source = head ? `git ${repoUrl}@${head}` : `git ${repoUrl}`;
   } catch (err) {
-    if (!existsSync(CCLAW_LOCAL_DIR)) {
+    if (!(await dirExists(CCLAW_LOCAL_DIR))) {
       throw err;
     }
 
@@ -427,14 +469,14 @@ async function prepareCClawComparator(): Promise<{
   await runInherit(["make", "clean"], { cwd: repoDir, allowFail: true });
 
   const env: Record<string, string | undefined> = {};
-  if (existsSync("/opt/homebrew/include")) {
-    env.CPATH = process.env.CPATH
-      ? `${process.env.CPATH}:/opt/homebrew/include`
+  if (await dirExists("/opt/homebrew/include")) {
+    env.CPATH = Bun.env.CPATH
+      ? `${Bun.env.CPATH}:/opt/homebrew/include`
       : "/opt/homebrew/include";
   }
-  if (existsSync("/opt/homebrew/lib")) {
-    env.LIBRARY_PATH = process.env.LIBRARY_PATH
-      ? `${process.env.LIBRARY_PATH}:/opt/homebrew/lib`
+  if (await dirExists("/opt/homebrew/lib")) {
+    env.LIBRARY_PATH = Bun.env.LIBRARY_PATH
+      ? `${Bun.env.LIBRARY_PATH}:/opt/homebrew/lib`
       : "/opt/homebrew/lib";
   }
 
@@ -455,7 +497,7 @@ async function prepareCClawComparator(): Promise<{
   }
 
   const binaryPath = join(repoDir, "bin", "cclaw");
-  if (!existsSync(binaryPath)) {
+  if (!(await Bun.file(binaryPath).exists())) {
     throw new Error(`cclaw binary not found: ${binaryPath}`);
   }
 
@@ -463,6 +505,7 @@ async function prepareCClawComparator(): Promise<{
   const version = firstLine(ver.out) || firstLine(ver.err) || "cclaw (unknown version)";
 
   return {
+    binPath: binaryPath,
     argv: [binaryPath, "--help"],
     version,
     source,
@@ -470,9 +513,26 @@ async function prepareCClawComparator(): Promise<{
   };
 }
 
+async function prepareKernelBenchHarness(): Promise<string> {
+  await runInherit([
+    "clang",
+    "-arch",
+    "arm64",
+    "-O3",
+    "-fno-vectorize",
+    "-fno-slp-vectorize",
+    "-o",
+    BENCH_KERNEL_BIN,
+    BENCH_KERNEL_SRC,
+    "build/string.o",
+    "build/json.o",
+  ]);
+  return BENCH_KERNEL_BIN;
+}
+
 const hyperfinePath = await findHyperfine();
 
-if (!existsSync(BINARY)) {
+if (!(await Bun.file(BINARY).exists())) {
   console.log("Binary not found. Building...");
   await runInherit(["ninja"]);
 }
@@ -546,7 +606,7 @@ let instructionsRetired: number | null = null;
 
 if (!quick) {
   section("Binary Size");
-  sizeBytes = statSync(BINARY).size;
+  sizeBytes = Bun.file(BINARY).size;
   sizeKB = sizeBytes / 1024;
   check("Binary size", sizeKB, targets.binaryKB, "KB");
   metric("Raw bytes", sizeBytes.toLocaleString());
@@ -615,11 +675,61 @@ if (!quick) {
 }
 
 let comparatorMetrics: ComparatorMetrics[] = [];
+let comparatorHelpMeans = new Map<string, number>();
+let comparatorVersionMeans = new Map<string, number>();
+let comparatorInvalidFlagMeans = new Map<string, number>();
 let assemblyComparatorStartupMs: number | null = null;
+let assemblyComparatorVersionMs: number | null = null;
+let assemblyComparatorInvalidFlagMs: number | null = null;
+
+let kernelStrlenSimdMs: number | null = null;
+let kernelStrlenScalarMs: number | null = null;
+let kernelStrlenSpeedup: number | null = null;
+let kernelJsonSimdMs: number | null = null;
+let kernelJsonScalarMs: number | null = null;
+let kernelJsonSpeedup: number | null = null;
+
+section("Assembly Kernel Benchmarks");
+const kernelHarness = await prepareKernelBenchHarness();
+metric("Harness", kernelHarness);
+
+section("Kernel Throughput (strlen 32KB)");
+await bench(
+  hyperfinePath,
+  [
+    { name: "strlen_simd", args: commandString([kernelHarness, "strlen-simd"]) },
+    { name: "strlen_scalar", args: commandString([kernelHarness, "strlen-scalar"]) },
+  ],
+  BENCH_KERNEL_STRLEN_JSON
+);
+const kernelStrlenMeans = await readHyperfineMeans(BENCH_KERNEL_STRLEN_JSON);
+kernelStrlenSimdMs = kernelStrlenMeans.get("strlen_simd") ?? null;
+kernelStrlenScalarMs = kernelStrlenMeans.get("strlen_scalar") ?? null;
+kernelStrlenSpeedup = computeSpeedup(kernelStrlenScalarMs, kernelStrlenSimdMs);
+metric("SIMD", formatNullableMs(kernelStrlenSimdMs));
+metric("Scalar baseline", formatNullableMs(kernelStrlenScalarMs));
+metric("Speedup", formatSpeedup(kernelStrlenSpeedup));
+
+section("Kernel Throughput (json_find_key 4KB)");
+await bench(
+  hyperfinePath,
+  [
+    { name: "json_simd", args: commandString([kernelHarness, "json-simd"]) },
+    { name: "json_scalar", args: commandString([kernelHarness, "json-scalar"]) },
+  ],
+  BENCH_KERNEL_JSON_JSON
+);
+const kernelJsonMeans = await readHyperfineMeans(BENCH_KERNEL_JSON_JSON);
+kernelJsonSimdMs = kernelJsonMeans.get("json_simd") ?? null;
+kernelJsonScalarMs = kernelJsonMeans.get("json_scalar") ?? null;
+kernelJsonSpeedup = computeSpeedup(kernelJsonScalarMs, kernelJsonSimdMs);
+metric("SIMD parser", formatNullableMs(kernelJsonSimdMs));
+metric("Scalar baseline", formatNullableMs(kernelJsonScalarMs));
+metric("Speedup", formatSpeedup(kernelJsonSpeedup));
 
 if (doComparators) {
   section("Comparator Setup");
-  mkdirSync(COMPARATOR_ROOT, { recursive: true });
+  await $`mkdir -p ${COMPARATOR_ROOT}`.quiet();
 
   const openclaw = await prepareOpenClawComparator();
   metric("OpenClaw", `${openclaw.version} (${openclaw.source})`);
@@ -630,23 +740,55 @@ if (doComparators) {
   const cclaw = await prepareCClawComparator();
   metric("CClaw", `${cclaw.version} (${cclaw.source})`);
 
+  const comparatorHelpCommands = [
+    { name: "assemblyclaw", args: commandString([BINARY, "--help"]) },
+    { name: "openclaw", args: commandString([openclaw.binPath, "--help"]) },
+    { name: "nullclaw", args: commandString([nullclaw.binPath, "--help"]) },
+    { name: "cclaw", args: commandString([cclaw.binPath, "--help"]) },
+  ];
+  const comparatorVersionCommands = [
+    { name: "assemblyclaw", args: commandString([BINARY, "--version"]) },
+    { name: "openclaw", args: commandString([openclaw.binPath, "--version"]) },
+    { name: "nullclaw", args: commandString([nullclaw.binPath, "--version"]) },
+    { name: "cclaw", args: commandString([cclaw.binPath, "--version"]) },
+  ];
+  const comparatorInvalidFlagCommands = [
+    { name: "assemblyclaw", args: commandString([BINARY, "--definitely-invalid"]) },
+    { name: "openclaw", args: commandString([openclaw.binPath, "--definitely-invalid"]) },
+    { name: "nullclaw", args: commandString([nullclaw.binPath, "--definitely-invalid"]) },
+    { name: "cclaw", args: commandString([cclaw.binPath, "--definitely-invalid"]) },
+  ];
+
   section("Comparator Startup (--help)");
+  await bench(hyperfinePath, comparatorHelpCommands, BENCH_COMPARE_JSON);
+  comparatorHelpMeans = await readHyperfineMeans(BENCH_COMPARE_JSON);
+
+  section("Comparator Startup (--version)");
+  await bench(hyperfinePath, comparatorVersionCommands, BENCH_COMPARE_VERSION_JSON);
+  comparatorVersionMeans = await readHyperfineMeans(BENCH_COMPARE_VERSION_JSON);
+
+  section("Comparator Error Path (--definitely-invalid)");
   await bench(
     hyperfinePath,
-    [
-      { name: "assemblyclaw", args: commandString([BINARY, "--help"]) },
-      { name: "openclaw", args: commandString(openclaw.argv) },
-      { name: "nullclaw", args: commandString(nullclaw.argv) },
-      { name: "cclaw", args: commandString(cclaw.argv) },
-    ],
-    BENCH_COMPARE_JSON
+    comparatorInvalidFlagCommands,
+    BENCH_COMPARE_INVALID_JSON,
+    ["--ignore-failure"]
   );
+  comparatorInvalidFlagMeans = await readHyperfineMeans(BENCH_COMPARE_INVALID_JSON);
 
-  const means = await readHyperfineMeans(BENCH_COMPARE_JSON);
-  assemblyComparatorStartupMs = means.get("assemblyclaw") ?? null;
-  const openclawStartup = means.get("openclaw");
-  const nullclawStartup = means.get("nullclaw");
-  const cclawStartup = means.get("cclaw");
+  assemblyComparatorStartupMs = readScenarioMs(comparatorHelpMeans, "assemblyclaw");
+  assemblyComparatorVersionMs = readScenarioMs(comparatorVersionMeans, "assemblyclaw");
+  assemblyComparatorInvalidFlagMs = readScenarioMs(comparatorInvalidFlagMeans, "assemblyclaw");
+
+  const openclawStartup = readScenarioMs(comparatorHelpMeans, "openclaw");
+  const nullclawStartup = readScenarioMs(comparatorHelpMeans, "nullclaw");
+  const cclawStartup = readScenarioMs(comparatorHelpMeans, "cclaw");
+  const openclawVersionMs = readScenarioMs(comparatorVersionMeans, "openclaw");
+  const nullclawVersionMs = readScenarioMs(comparatorVersionMeans, "nullclaw");
+  const cclawVersionMs = readScenarioMs(comparatorVersionMeans, "cclaw");
+  const openclawInvalidFlagMs = readScenarioMs(comparatorInvalidFlagMeans, "openclaw");
+  const nullclawInvalidFlagMs = readScenarioMs(comparatorInvalidFlagMeans, "nullclaw");
+  const cclawInvalidFlagMs = readScenarioMs(comparatorInvalidFlagMeans, "cclaw");
 
   if (openclawStartup == null || nullclawStartup == null || cclawStartup == null) {
     throw new Error("missing comparator startup means from hyperfine export");
@@ -663,30 +805,39 @@ if (doComparators) {
   comparatorMetrics = [
     {
       key: "typescript",
+      commandName: "openclaw",
       name: "TypeScript",
       version: openclaw.version,
       source: openclaw.source,
       binaryKB: openclaw.binaryKB,
       rssKB: openclawRssKB,
       startupMs: openclawStartup,
+      versionMs: openclawVersionMs,
+      invalidFlagMs: openclawInvalidFlagMs,
     },
     {
       key: "zig",
+      commandName: "nullclaw",
       name: "Zig",
       version: nullclaw.version,
       source: nullclaw.source,
       binaryKB: nullclaw.binaryKB,
       rssKB: nullclawRssKB,
       startupMs: nullclawStartup,
+      versionMs: nullclawVersionMs,
+      invalidFlagMs: nullclawInvalidFlagMs,
     },
     {
       key: "c",
+      commandName: "cclaw",
       name: "C",
       version: cclaw.version,
       source: cclaw.source,
       binaryKB: cclaw.binaryKB,
       rssKB: cclawRssKB,
       startupMs: cclawStartup,
+      versionMs: cclawVersionMs,
+      invalidFlagMs: cclawInvalidFlagMs,
     },
   ];
 
@@ -694,7 +845,7 @@ if (doComparators) {
   for (const cmp of comparatorMetrics) {
     metric(
       cmp.name,
-      `bin ${formatStorageDisplay(cmp.binaryKB)} · ram ${formatStorageDisplay(cmp.rssKB)} · start ${formatMsDisplay(cmp.startupMs)}`
+      `bin ${formatStorageDisplay(cmp.binaryKB)} · ram ${formatStorageDisplay(cmp.rssKB)} · help ${formatMsDisplay(cmp.startupMs)} · ver ${formatNullableMs(cmp.versionMs)} · invalid ${formatNullableMs(cmp.invalidFlagMs)}`
     );
   }
 }
@@ -714,15 +865,30 @@ console.log(`  Start:  < ${targets.startupMs} ms`);
 console.log();
 
 if (doExport) {
-  mkdirSync(dirname(BENCH_SITE_JSON), { recursive: true });
+  await $`mkdir -p ${BENCH_SITE_JSON.substring(0, BENCH_SITE_JSON.lastIndexOf("/"))}`.quiet();
 
   const assemblyBinaryKB = sizeKB ?? binarySizeKB(BINARY);
   const assemblyRssKB = rssKB ?? measureRssKB([BINARY, "--help"]);
-  const compareMeans = existsSync(BENCH_COMPARE_JSON)
+  const compareMeans = (await Bun.file(BENCH_COMPARE_JSON).exists())
     ? await readHyperfineMeans(BENCH_COMPARE_JSON)
     : new Map<string, number>();
+  const compareVersionMeans = comparatorVersionMeans.size
+    ? comparatorVersionMeans
+    : (await Bun.file(BENCH_COMPARE_VERSION_JSON).exists())
+      ? await readHyperfineMeans(BENCH_COMPARE_VERSION_JSON)
+      : new Map<string, number>();
+  const compareInvalidFlagMeans = comparatorInvalidFlagMeans.size
+    ? comparatorInvalidFlagMeans
+    : (await Bun.file(BENCH_COMPARE_INVALID_JSON).exists())
+      ? await readHyperfineMeans(BENCH_COMPARE_INVALID_JSON)
+      : new Map<string, number>();
   const assemblyStartupMs =
     assemblyComparatorStartupMs ?? compareMeans.get("assemblyclaw") ?? startupHelpMs;
+  const assemblyVersionMs =
+    assemblyComparatorVersionMs ?? readScenarioMs(compareVersionMeans, "assemblyclaw");
+  const assemblyInvalidFlagMs =
+    assemblyComparatorInvalidFlagMs ??
+    readScenarioMs(compareInvalidFlagMeans, "assemblyclaw");
 
   if (assemblyRssKB == null || assemblyStartupMs == null) {
     throw new Error("assembly metrics unavailable for JSON export");
@@ -739,6 +905,10 @@ if (doExport) {
       ram_display: formatStorageDisplay(assemblyRssKB),
       startup_ms: assemblyStartupMs,
       startup_display: formatMsDisplay(assemblyStartupMs),
+      version_ms: assemblyVersionMs,
+      version_display: formatNullableMs(assemblyVersionMs),
+      invalid_flag_ms: assemblyInvalidFlagMs,
+      invalid_flag_display: formatNullableMs(assemblyInvalidFlagMs),
     },
   };
 
@@ -751,6 +921,10 @@ if (doExport) {
       ram_display: formatStorageDisplay(cmp.rssKB),
       startup_ms: cmp.startupMs,
       startup_display: formatMsDisplay(cmp.startupMs),
+      version_ms: cmp.versionMs,
+      version_display: formatNullableMs(cmp.versionMs),
+      invalid_flag_ms: cmp.invalidFlagMs,
+      invalid_flag_display: formatNullableMs(cmp.invalidFlagMs),
     };
   }
 
@@ -763,6 +937,10 @@ if (doExport) {
       ram_display: "—",
       startup_ms: null,
       startup_display: "—",
+      version_ms: null,
+      version_display: "—",
+      invalid_flag_ms: null,
+      invalid_flag_display: "—",
     };
   }
   if (!languagePayload.zig) {
@@ -774,6 +952,10 @@ if (doExport) {
       ram_display: "—",
       startup_ms: null,
       startup_display: "—",
+      version_ms: null,
+      version_display: "—",
+      invalid_flag_ms: null,
+      invalid_flag_display: "—",
     };
   }
   if (!languagePayload.c) {
@@ -785,6 +967,10 @@ if (doExport) {
       ram_display: "—",
       startup_ms: null,
       startup_display: "—",
+      version_ms: null,
+      version_display: "—",
+      invalid_flag_ms: null,
+      invalid_flag_display: "—",
     };
   }
 
@@ -823,6 +1009,26 @@ if (doExport) {
         args: HF_ARGS.join(" "),
         command_file: BENCH_COMPARE_JSON,
       },
+      comparator_startup_version: {
+        tool: `hyperfine ${hyperfineVersion}`,
+        args: HF_ARGS.join(" "),
+        command_file: BENCH_COMPARE_VERSION_JSON,
+      },
+      comparator_unknown_flag: {
+        tool: `hyperfine ${hyperfineVersion}`,
+        args: `${HF_ARGS.join(" ")} --ignore-failure`,
+        command_file: BENCH_COMPARE_INVALID_JSON,
+      },
+      kernel_strlen: {
+        tool: `hyperfine ${hyperfineVersion}`,
+        args: HF_ARGS.join(" "),
+        command_file: BENCH_KERNEL_STRLEN_JSON,
+      },
+      kernel_json_find_key: {
+        tool: `hyperfine ${hyperfineVersion}`,
+        args: HF_ARGS.join(" "),
+        command_file: BENCH_KERNEL_JSON_JSON,
+      },
       binary_size: {
         tool: "stat / du",
         command: `stat -f%z ${BINARY} (+ du -sk for OpenClaw dist)`,
@@ -834,6 +1040,8 @@ if (doExport) {
       notes: [
         "Values are measured locally on this machine.",
         "Display strings are integer-only by design (no decimal places).",
+        "Unknown-flag benchmark uses '--definitely-invalid' and allows non-zero exit codes.",
+        "Kernel benchmarks compare assembly SIMD paths against scalar C baselines in tests/bench_kernels.c.",
         ...comparisonNotes,
       ],
     },
@@ -842,6 +1050,28 @@ if (doExport) {
       page_faults: pageFaults,
       involuntary_context_switches: involuntaryContextSwitches,
       instructions_retired: instructionsRetired,
+      comparator_startup_version_ms: {
+        assembly: assemblyVersionMs,
+        typescript: readScenarioMs(compareVersionMeans, "openclaw"),
+        zig: readScenarioMs(compareVersionMeans, "nullclaw"),
+        c: readScenarioMs(compareVersionMeans, "cclaw"),
+      },
+      comparator_unknown_flag_ms: {
+        assembly: assemblyInvalidFlagMs,
+        typescript: readScenarioMs(compareInvalidFlagMeans, "openclaw"),
+        zig: readScenarioMs(compareInvalidFlagMeans, "nullclaw"),
+        c: readScenarioMs(compareInvalidFlagMeans, "cclaw"),
+      },
+      kernel_strlen_32kb_ms: {
+        simd: kernelStrlenSimdMs,
+        scalar: kernelStrlenScalarMs,
+        speedup: kernelStrlenSpeedup,
+      },
+      kernel_json_find_key_4kb_ms: {
+        simd: kernelJsonSimdMs,
+        scalar: kernelJsonScalarMs,
+        speedup: kernelJsonSpeedup,
+      },
     },
     status: {
       binary_target_met: assemblyBinaryKB <= targets.binaryKB,
@@ -850,7 +1080,7 @@ if (doExport) {
     },
   };
 
-  writeFileSync(BENCH_SITE_JSON, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await Bun.write(BENCH_SITE_JSON, `${JSON.stringify(payload, null, 2)}\n`);
   section("Export (Canonical JSON)");
   metric("Written", BENCH_SITE_JSON);
 }

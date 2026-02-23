@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-02-23T22:15:01.514Z",
-  "git_commit": "ef94782",
+  "generated_at_utc": "2026-02-23T22:37:59.338Z",
+  "git_commit": "e1dec10",
   "source_binary": "./build/assemblyclaw",
   "targets": {
     "binary_kb": 32,
@@ -29,6 +29,26 @@
       "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
       "command_file": "./build/bench.compare.hyperfine.json"
     },
+    "comparator_startup_version": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
+      "command_file": "./build/bench.compare.version.hyperfine.json"
+    },
+    "comparator_unknown_flag": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond --ignore-failure",
+      "command_file": "./build/bench.compare.invalid.hyperfine.json"
+    },
+    "kernel_strlen": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
+      "command_file": "./build/bench.kernel.strlen.hyperfine.json"
+    },
+    "kernel_json_find_key": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
+      "command_file": "./build/bench.kernel.json.hyperfine.json"
+    },
     "binary_size": {
       "tool": "stat / du",
       "command": "stat -f%z ./build/assemblyclaw (+ du -sk for OpenClaw dist)"
@@ -40,6 +60,8 @@
     "notes": [
       "Values are measured locally on this machine.",
       "Display strings are integer-only by design (no decimal places).",
+      "Unknown-flag benchmark uses '--definitely-invalid' and allows non-zero exit codes.",
+      "Kernel benchmarks compare assembly SIMD paths against scalar C baselines in tests/bench_kernels.c.",
       "TypeScript: 2026.2.22-2 (npm openclaw@latest)",
       "Zig: nullclaw 2026.2.21 (github release v2026.2.21)",
       "C: CClaw 0.1.0 (git https://github.com/aresbit/cclaw.git@1eab2d0)"
@@ -54,17 +76,25 @@
       "ram_kb": 1312,
       "ram_bytes": 1343488,
       "ram_display": "1 MB",
-      "startup_ms": 4.7100363141655,
-      "startup_display": "4 ms"
+      "startup_ms": 4.467873757575759,
+      "startup_display": "4 ms",
+      "version_ms": 4.199059323298424,
+      "version_display": "4 ms",
+      "invalid_flag_ms": 4.879303692307693,
+      "invalid_flag_display": "4 ms"
     },
     "typescript": {
       "name": "TypeScript",
       "binary_kb": 42712,
       "binary_display": "41 MB",
-      "ram_kb": 368000,
-      "ram_display": "359 MB",
-      "startup_ms": 842.4357983599998,
-      "startup_display": "842 ms"
+      "ram_kb": 379840,
+      "ram_display": "370 MB",
+      "startup_ms": 754.8970807400001,
+      "startup_display": "754 ms",
+      "version_ms": 890.3012966799997,
+      "version_display": "890 ms",
+      "invalid_flag_ms": 1508.9648516600002,
+      "invalid_flag_display": "1508 ms"
     },
     "zig": {
       "name": "Zig",
@@ -72,8 +102,12 @@
       "binary_display": "2 MB",
       "ram_kb": 1776,
       "ram_display": "1 MB",
-      "startup_ms": 5.307221425324677,
-      "startup_display": "5 ms"
+      "startup_ms": 5.503628987951807,
+      "startup_display": "5 ms",
+      "version_ms": 5.188810932166308,
+      "version_display": "5 ms",
+      "invalid_flag_ms": 5.994647687581692,
+      "invalid_flag_display": "5 ms"
     },
     "c": {
       "name": "C",
@@ -81,14 +115,40 @@
       "binary_display": "143 KB",
       "ram_kb": 5728,
       "ram_display": "5 MB",
-      "startup_ms": 8.040987160400997,
-      "startup_display": "8 ms"
+      "startup_ms": 7.711386742914974,
+      "startup_display": "7 ms",
+      "version_ms": 7.700416515555557,
+      "version_display": "7 ms",
+      "invalid_flag_ms": 7.8358883987539025,
+      "invalid_flag_display": "7 ms"
     }
   },
   "extra_metrics": {
-    "page_faults": 1,
-    "involuntary_context_switches": 14,
-    "instructions_retired": 11934502
+    "page_faults": null,
+    "involuntary_context_switches": null,
+    "instructions_retired": null,
+    "comparator_startup_version_ms": {
+      "assembly": 4.199059323298424,
+      "typescript": 890.3012966799997,
+      "zig": 5.188810932166308,
+      "c": 7.700416515555557
+    },
+    "comparator_unknown_flag_ms": {
+      "assembly": 4.879303692307693,
+      "typescript": 1508.9648516600002,
+      "zig": 5.994647687581692,
+      "c": 7.8358883987539025
+    },
+    "kernel_strlen_32kb_ms": {
+      "simd": 10.368718392694065,
+      "scalar": 155.44396920000005,
+      "speedup": 14.991628021215034
+    },
+    "kernel_json_find_key_4kb_ms": {
+      "simd": 50.912234375,
+      "scalar": 92.44630002000001,
+      "speedup": 1.8157973452721798
+    }
   },
   "status": {
     "binary_target_met": false,

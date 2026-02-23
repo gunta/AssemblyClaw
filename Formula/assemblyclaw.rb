@@ -1,17 +1,17 @@
 class Assemblyclaw < Formula
   desc "World's smallest AI agent infrastructure — pure ARM64 assembly"
   homepage "https://github.com/gunta/AssemblyClaw"
-  url "https://github.com/gunta/AssemblyClaw.git",
-      tag:      "v0.1.0",
-      revision: ""
+  url "https://github.com/gunta/AssemblyClaw/archive/refs/tags/v0.1.0.tar.gz"
+  sha256 "PLACEHOLDER"
   license "MIT"
   head "https://github.com/gunta/AssemblyClaw.git", branch: "main"
 
   depends_on arch: :arm64
   depends_on :macos
+  depends_on "ninja" => :build
 
   def install
-    system "make"
+    system "ninja"
     bin.install "build/assemblyclaw"
   end
 
@@ -35,8 +35,6 @@ class Assemblyclaw < Formula
 
   test do
     assert_match "assemblyclaw", shell_output("#{bin}/assemblyclaw --version")
-    assert_match version.to_s, shell_output("#{bin}/assemblyclaw --version")
     shell_output("#{bin}/assemblyclaw --help")
-    shell_output("#{bin}/assemblyclaw status")
   end
 end

@@ -48,3 +48,40 @@ ninja -t clean     # Remove build outputs
 ```
 
 Requires macOS on Apple Silicon + Ninja + Xcode Command Line Tools. No other dependencies.
+
+## Scripting Rules
+
+All `.ts` scripts use **Bun-native APIs only**. Do not import from `node:fs`, `node:os`, or `node:http`.
+
+| Use this | Not this |
+|----------|----------|
+| `Bun.file(p).text()` | `readFileSync(p, "utf8")` |
+| `Bun.file(p).exists()` | `existsSync(p)` |
+| `Bun.file(p).size` | `statSync(p).size` |
+| `Bun.write(p, data)` | `writeFileSync(p, data)` |
+| `Bun.serve({ fetch })` | `createServer(...)` |
+| `Bun.env.FOO` | `process.env.FOO` |
+| `$\`mkdir -p ${dir}\`` | `mkdirSync(dir, { recursive: true })` |
+| `$\`mktemp -d ...\`` | `mkdtempSync(...)` |
+
+`node:path` (`join`, `dirname`) is acceptable — Bun supports it natively.
+
+## Release & Changelog
+
+**Every meaningful change** → add a bullet to `CHANGELOG.md` under `## Unreleased`.
+
+Do this for: new features, bug fixes, refactors, build changes, dependency updates.
+Skip: whitespace-only or comment-only changes.
+
+**Version bump:**
+
+```bash
+bun version.ts patch|minor|major   # bumps constants.inc + version.s + CHANGELOG
+git push && git push --tags         # triggers GitHub Release + Homebrew formula update
+```
+
+**Version is stored in 3 places** (the script keeps them in sync):
+- `include/constants.inc` — `.set VERSION_MAJOR/MINOR/PATCH`
+- `src/version.s` — version string literals
+
+The CI release workflow auto-updates `Formula/assemblyclaw.rb` with the correct SHA256 on each tagged release.

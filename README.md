@@ -62,14 +62,7 @@ Comparison provenance for this run:
 ### Homebrew (recommended)
 
 ```bash
-brew tap gunta/assemblyclaw
-brew install assemblyclaw
-```
-
-Or install the latest from main:
-
-```bash
-brew install --HEAD gunta/assemblyclaw/assemblyclaw
+brew install gunta/assemblyclaw/assemblyclaw
 ```
 
 ### Build from source
@@ -80,7 +73,7 @@ Requires macOS on Apple Silicon, Ninja, and Xcode Command Line Tools.
 git clone https://github.com/gunta/AssemblyClaw.git
 cd AssemblyClaw
 ninja
-sudo cp build/assemblyclaw /usr/local/bin/
+cp build/assemblyclaw /usr/local/bin/
 ```
 
 ## Quick Start
@@ -180,6 +173,16 @@ Programming languages will keep evolving. The world needs:
 
 But right now, this project shows that even assembly is within reach
 when you have a spec and an AI coding agent. Good times to be alive.
+
+## Author
+
+Built by [Günther Brunner](https://guntherbrunner.com) — design engineer, researcher, and creator of [OpenSTF](https://github.com/nicknisi/stf) (13k+ stars). Based in Tokyo since 2007, shipping at the intersection of AI, design systems, and developer tools.
+
+Previously: TypeScript (OpenClaw) → Zig (NullClaw) → C (CClaw) → here.
+
+- [guntherbrunner.com](https://guntherbrunner.com)
+- [@gunta85](https://x.com/gunta85)
+- [github.com/gunta](https://github.com/gunta)
 
 ## License
 

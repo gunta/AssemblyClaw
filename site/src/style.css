@@ -1033,6 +1033,142 @@ details.benchmark-card--conditions[open] > .benchmark-card-toggle {
   opacity: 0.7;
 }
 
+/* ─── HARDWARE DETAILS ─── */
+.hw-details {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hw-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.2s;
+}
+
+.hw-detail-row:hover {
+  border-color: var(--border);
+}
+
+.hw-detail-row--asm {
+  background: rgba(0, 232, 123, 0.04);
+  border-color: var(--accent-green-dim);
+}
+
+.hw-detail-label {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  margin-top: 0.1rem;
+}
+
+.hw-detail-row--ts .hw-detail-label {
+  background: var(--accent-orange-dim);
+  color: var(--accent-orange);
+}
+
+.hw-detail-row--zig .hw-detail-label {
+  background: rgba(77, 159, 255, 0.15);
+  color: var(--accent-blue);
+}
+
+.hw-detail-row--c .hw-detail-label {
+  background: rgba(92, 92, 110, 0.2);
+  color: var(--text-muted);
+}
+
+.hw-detail-row--asm .hw-detail-label {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.hw-detail-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.hw-detail-info a {
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--text-dim);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.hw-detail-info a:hover {
+  color: var(--accent-green);
+  border-color: var(--accent-green);
+}
+
+.hw-detail-info strong {
+  font-weight: 700;
+}
+
+.hw-detail-sub {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 0.2rem;
+  line-height: 1.5;
+}
+
+.hw-detail-sub a {
+  color: var(--text-muted);
+  border-bottom-color: var(--border-subtle);
+}
+
+.hw-detail-row--asm .hw-detail-info {
+  color: var(--accent-green);
+}
+
+.hw-detail-row--asm .hw-detail-sub {
+  color: var(--text-muted);
+}
+
+/* ─── PROMPT NOTE ─── */
+.hw-cost-prompt-wrap {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.hw-cost-prompt {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.hw-cost-prompt code {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-style: normal;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
 /* ═══════════ ARCHITECTURE ═══════════ */
 .architecture {
   padding: clamp(80px, 12vw, 140px) 0;
@@ -1075,8 +1211,8 @@ details.benchmark-card--conditions[open] > .benchmark-card-toggle {
   height: 36px;
   background: var(--accent-green-dim);
   border-radius: var(--radius-sm);
-  font-size: 1.1rem;
   margin-bottom: 0.75rem;
+  color: var(--accent-green);
 }
 
 .arch-feature h4 {
@@ -1646,9 +1782,8 @@ details.benchmark-card--conditions[open] > .benchmark-card-toggle {
 }
 
 .thanks-icon {
-  font-size: 2.5rem;
   margin-bottom: 1rem;
-  line-height: 1;
+  color: var(--accent-green);
 }
 
 .thanks-title {

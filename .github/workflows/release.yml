@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: ninja
+
+      - name: Rename binary
+        run: cp build/assemblyclaw assemblyclaw-macos-arm64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assemblyclaw-macos-arm64
+          generate_release_notes: true
+
+      - name: Update Homebrew formula
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/${TAG}.tar.gz"
+
+          # Download tarball and compute SHA256
+          curl -sL "$TARBALL_URL" -o source.tar.gz
+          SHA256=$(shasum -a 256 source.tar.gz | awk '{print $1}')
+
+          # Update formula
+          sed -i '' "s|url \".*\"|url \"${TARBALL_URL}\"|" Formula/assemblyclaw.rb
+          sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/assemblyclaw.rb
+
+          # Commit and push to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add Formula/assemblyclaw.rb
+          git commit -m "formula: update to ${TAG}" || exit 0
+          git push origin main

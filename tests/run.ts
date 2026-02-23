@@ -1,15 +1,12 @@
 #!/usr/bin/env bun
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { $ } from "bun";
 import { join } from "node:path";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { AddressInfo } from "node:net";
 
 type Result = { id: string; name: string; pass: boolean; detail?: string };
 
-const ROOT = process.cwd();
+const ROOT = import.meta.dir.replace(/\/tests$/, "");
 const BIN = join(ROOT, "build", "assemblyclaw");
-const TEST_BIN_DIR = mkdtempSync(join(tmpdir(), "assemblyclaw-test-bin-"));
+const TEST_BIN_DIR = (await $`mktemp -d ${(Bun.env.TMPDIR ?? "/tmp") + "/assemblyclaw-test-bin-XXXXXX"}`.text()).trim();
 
 const NAMES: Record<string, string> = {
   "1.1": "--help prints usage",
@@ -91,7 +88,7 @@ function decode(buf: Uint8Array | Buffer | null | undefined): string {
 function runCmd(cmd: string[], env?: Record<string, string>) {
   const proc = Bun.spawnSync(cmd, {
     cwd: ROOT,
-    env: { ...process.env, ...(env ?? {}) },
+    env: { ...Bun.env, ...(env ?? {}) },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -115,7 +112,7 @@ async function runBinaryAsync(args: string[], home?: string, env?: Record<string
   const proc = Bun.spawn([BIN, ...args], {
     cwd: ROOT,
     env: {
-      ...process.env,
+      ...Bun.env,
       ...SANITIZED_MODEL_ENV,
       ...(home ? { HOME: home } : {}),
       ...(env ?? {}),
@@ -131,54 +128,44 @@ async function runBinaryAsync(args: string[], home?: string, env?: Record<string
   return { code, out, err };
 }
 
-function makeHome(configObj?: unknown, rawConfig?: string) {
-  const home = mkdtempSync(join(tmpdir(), "assemblyclaw-test-"));
+async function makeHome(configObj?: unknown, rawConfig?: string) {
+  const home = (await $`mktemp -d ${(Bun.env.TMPDIR ?? "/tmp") + "/assemblyclaw-test-XXXXXX"}`.text()).trim();
   const cfgDir = join(home, ".assemblyclaw");
-  mkdirSync(cfgDir, { recursive: true });
+  await $`mkdir -p ${cfgDir}`.quiet();
   if (rawConfig !== undefined) {
-    writeFileSync(join(cfgDir, "config.json"), rawConfig, "utf8");
+    await Bun.write(join(cfgDir, "config.json"), rawConfig);
   } else if (configObj !== undefined) {
-    writeFileSync(join(cfgDir, "config.json"), JSON.stringify(configObj, null, 2), "utf8");
+    await Bun.write(join(cfgDir, "config.json"), JSON.stringify(configObj, null, 2));
   }
   return home;
 }
 
 async function withServer(
-  responder: (
-    req: IncomingMessage,
-    body: Buffer,
-    res: ServerResponse,
-    state: { requests: Array<{ headers: IncomingMessage["headers"]; body: string; method: string }> }
-  ) => void | Promise<void>,
-  fn: (
-    port: number,
-    state: { requests: Array<{ headers: IncomingMessage["headers"]; body: string; method: string }> }
-  ) => Promise<void>
+  handler: (req: Request, state: { requests: Array<{ headers: Headers; body: string; method: string }> }) => Response | Promise<Response>,
+  fn: (port: number, state: { requests: Array<{ headers: Headers; body: string; method: string }> }) => Promise<void>
 ) {
   const state = {
-    requests: [] as Array<{ headers: IncomingMessage["headers"]; body: string; method: string }>,
+    requests: [] as Array<{ headers: Headers; body: string; method: string }>,
   };
 
-  const server = createServer(async (req, res) => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(Buffer.from(chunk));
-    }
-    const body = Buffer.concat(chunks);
-    state.requests.push({
-      headers: req.headers,
-      body: body.toString("utf8"),
-      method: req.method ?? "",
-    });
-    await responder(req, body, res, state);
+  const server = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    async fetch(req) {
+      const body = await req.text();
+      state.requests.push({
+        headers: req.headers,
+        body,
+        method: req.method,
+      });
+      return handler(req, state);
+    },
   });
 
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const addr = server.address() as AddressInfo;
   try {
-    await fn(addr.port, state);
+    await fn(server.port, state);
   } finally {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    server.stop();
   }
 }
 
@@ -277,7 +264,7 @@ const results: Result[] = [];
 
 // ── 5. Config Tests ──────────────────────────────────────────────────────────
 {
-  const homeValid = makeHome({
+  const homeValid = await makeHome({
     default_provider: "openai",
     providers: {
       openai: {
@@ -294,11 +281,11 @@ const results: Result[] = [];
     pass: r51.code === 0 && r51.out.includes("config:   loaded"),
   });
 
-  const homeMissing = mkdtempSync(join(tmpdir(), "assemblyclaw-test-"));
+  const homeMissing = (await $`mktemp -d ${(Bun.env.TMPDIR ?? "/tmp") + "/assemblyclaw-test-XXXXXX"}`.text()).trim();
   const r52 = runBinary(["status"], homeMissing);
   let autoCreatedTemplate = false;
   try {
-    const generated = readFileSync(join(homeMissing, ".assemblyclaw", "config.json"), "utf8");
+    const generated = await Bun.file(join(homeMissing, ".assemblyclaw", "config.json")).text();
     autoCreatedTemplate = generated.includes("\"default_provider\": \"openrouter\"");
   } catch {
     autoCreatedTemplate = false;
@@ -309,7 +296,7 @@ const results: Result[] = [];
     pass: r52.code === 0 && r52.out.includes("not configured") && autoCreatedTemplate,
   });
 
-  const homeMalformed = makeHome(undefined, "not-json");
+  const homeMalformed = await makeHome(undefined, "not-json");
   const r53 = runBinary(["status"], homeMalformed);
   results.push({
     id: "5.3",
@@ -317,7 +304,7 @@ const results: Result[] = [];
     pass: r53.code === 0 && r53.out.includes("not configured"),
   });
 
-  const homeMissingFields = makeHome({
+  const homeMissingFields = await makeHome({
     default_provider: "openai",
     providers: { openai: { model: "gpt-4o-mini" } },
   });
@@ -328,7 +315,7 @@ const results: Result[] = [];
     pass: r54.code === 1 && r54.err.includes("could not load config"),
   });
 
-  const homeDefaults = makeHome({
+  const homeDefaults = await makeHome({
     default_provider: "openai",
     providers: { openai: { api_key: "sk-test" } },
   });
@@ -342,7 +329,7 @@ const results: Result[] = [];
       r55.out.includes("model:    gpt-4.1-mini"),
   });
 
-  const homeEnvFallback = makeHome({
+  const homeEnvFallback = await makeHome({
     default_provider: "openrouter",
     providers: {
       openrouter: {
@@ -366,17 +353,13 @@ let t71 = false;
 let t72 = false;
 let t81 = false;
 await withServer(
-  async (_req, _body, res) => {
-    const body = JSON.stringify({
+  async (_req, _state) => {
+    return Response.json({
       choices: [{ message: { role: "assistant", content: "ok-provider" } }],
     });
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-    res.end(body);
   },
   async (port, state) => {
-    const home = makeHome({
+    const home = await makeHome({
       default_provider: "openai",
       providers: {
         openai: {
@@ -390,7 +373,7 @@ await withServer(
     const req = state.requests[0];
     openaiReqBody = req ? JSON.parse(req.body) : null;
     t61 = res.code === 0 && res.out.trim() === "ok-provider" && req?.method === "POST";
-    t62 = !!req && String(req.headers["content-type"] || "").includes("application/json");
+    t62 = !!req && (state.requests[0]?.headers.get("content-type") ?? "").includes("application/json");
     t71 =
       !!openaiReqBody &&
       openaiReqBody.model === "gpt-4o-mini" &&
@@ -411,18 +394,14 @@ results.push({ id: "8.1", name: NAMES["8.1"], pass: t81 });
 // 6.3 Anthropic auth headers
 let t63 = false;
 await withServer(
-  async (_req, _body, res) => {
-    const body = JSON.stringify({
+  async (_req, _state) => {
+    return Response.json({
       content: [{ type: "text", text: "ok-anth" }],
       stop_reason: "end_turn",
     });
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-    res.end(body);
   },
   async (port, state) => {
-    const home = makeHome({
+    const home = await makeHome({
       default_provider: "anthropic",
       providers: {
         anthropic: {
@@ -433,19 +412,18 @@ await withServer(
       },
     });
     const res = await runBinaryAsync(["agent", "-m", "hello"], home);
-    const req = state.requests[0];
     t63 =
       res.code === 0 &&
-      !!req &&
-      String(req.headers["x-api-key"] || "") === "test-key" &&
-      String(req.headers["anthropic-version"] || "") === "2023-06-01";
+      !!state.requests[0] &&
+      (state.requests[0]?.headers.get("x-api-key") ?? "") === "test-key" &&
+      (state.requests[0]?.headers.get("anthropic-version") ?? "") === "2023-06-01";
   }
 );
 results.push({ id: "6.3", name: NAMES["6.3"], pass: t63 });
 
 // 6.4 / 6.5 connection and URL errors
 {
-  const homeConnErr = makeHome({
+  const homeConnErr = await makeHome({
     default_provider: "openai",
     providers: {
       openai: {
@@ -462,7 +440,7 @@ results.push({ id: "6.3", name: NAMES["6.3"], pass: t63 });
     pass: r64.code === 1 && r64.err.includes("HTTP request failed"),
   });
 
-  const homeBadUrl = makeHome({
+  const homeBadUrl = await makeHome({
     default_provider: "openai",
     providers: {
       openai: {
@@ -483,7 +461,7 @@ results.push({ id: "6.3", name: NAMES["6.3"], pass: t63 });
 // 7.3 tool-calls
 let t73 = false;
 await withServer(
-  async (_req, _body, res, state) => {
+  async (_req, state) => {
     const n = state.requests.length;
     const payload =
       n === 1
@@ -504,14 +482,10 @@ await withServer(
             ],
           }
         : { choices: [{ message: { role: "assistant", content: "tool-finished" } }] };
-    const body = JSON.stringify(payload);
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-    res.end(body);
+    return Response.json(payload);
   },
   async (port, state) => {
-    const home = makeHome({
+    const home = await makeHome({
       default_provider: "openai",
       providers: {
         openai: {
@@ -540,15 +514,14 @@ results.push({ id: "7.3", name: NAMES["7.3"], pass: t73 });
 // 7.4 API error propagation
 let t74 = false;
 await withServer(
-  async (_req, _body, res) => {
-    const body = JSON.stringify({ error: { message: "server error" } });
-    res.statusCode = 500;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-    res.end(body);
+  async (_req, _state) => {
+    return new Response(JSON.stringify({ error: { message: "server error" } }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   },
   async (port) => {
-    const home = makeHome({
+    const home = await makeHome({
       default_provider: "openai",
       providers: {
         openai: {
@@ -567,15 +540,14 @@ results.push({ id: "7.4", name: NAMES["7.4"], pass: t74 });
 // 7.5 rate limit handling (error path)
 let t75 = false;
 await withServer(
-  async (_req, _body, res) => {
-    const body = JSON.stringify({ error: { message: "rate limited" } });
-    res.statusCode = 429;
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-    res.end(body);
+  async (_req, _state) => {
+    return new Response(JSON.stringify({ error: { message: "rate limited" } }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
   },
   async (port) => {
-    const home = makeHome({
+    const home = await makeHome({
       default_provider: "openai",
       providers: {
         openai: {
@@ -593,7 +565,7 @@ results.push({ id: "7.5", name: NAMES["7.5"], pass: t75 });
 
 // 8.2 status command and 8.3 empty message
 {
-  const home = makeHome({
+  const home = await makeHome({
     default_provider: "openai",
     providers: {
       openai: {
@@ -622,17 +594,13 @@ results.push({ id: "7.5", name: NAMES["7.5"], pass: t75 });
 {
   let memoryLogOk = false;
   await withServer(
-    async (_req, _body, res) => {
-      const body = JSON.stringify({
+    async (_req, _state) => {
+      return Response.json({
         choices: [{ message: { role: "assistant", content: "persist-check" } }],
       });
-      res.statusCode = 200;
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Content-Length", String(Buffer.byteLength(body)));
-      res.end(body);
     },
     async (port) => {
-      const home = makeHome({
+      const home = await makeHome({
         default_provider: "openai",
         providers: {
           openai: {
@@ -645,7 +613,7 @@ results.push({ id: "7.5", name: NAMES["7.5"], pass: t75 });
       const r = await runBinaryAsync(["agent", "-m", "persist-me"], home);
       if (r.code !== 0) return;
       const logPath = join(home, ".assemblyclaw", "memory.log");
-      const log = readFileSync(logPath, "utf8");
+      const log = await Bun.file(logPath).text();
       memoryLogOk = log.includes("user\tpersist-me") && log.includes("assistant\tpersist-check");
     }
   );

@@ -558,6 +558,52 @@ const glossary = {
     body: 'A program compiled into <strong>one standalone file</strong> with no external dependencies to install. No node_modules, no .dll/.so files, no runtime. Just copy the binary anywhere and run it. Zig, Go, and Rust excel at producing single binaries.',
     analogy: 'Like a portable app on a USB stick vs. an installer that scatters files across your system.',
   },
+  'register-allocation': {
+    title: 'Register Allocation',
+    aka: 'Mapping variables to CPU registers',
+    body: 'Registers are the <strong>fastest storage</strong> inside the CPU — accessed in a single cycle, no memory bus needed. ARM64 gives you 31 general-purpose registers (x0–x30). In assembly, you decide exactly which variable lives in which register. Compilers try to do this automatically but often "spill" values to RAM when they run out of registers or can\'t prove safety.',
+    analogy: 'Like having 31 hands — in assembly you choose what each hand holds. A compiler might drop things on the floor (RAM) and pick them up again, wasting time.',
+  },
+  'gp-registers': {
+    title: 'General-Purpose Registers',
+    aka: 'x0–x30 on ARM64',
+    body: 'ARM64 provides <strong>31 registers</strong>, each 64 bits wide — that\'s 248 bytes of instant-access storage inside the CPU. For comparison, x86-64 has only 16. More registers means fewer memory accesses, less "spilling" to RAM, and more data kept hot in the fastest possible location.',
+  },
+  'spilling': {
+    title: 'Register Spilling',
+    aka: 'When the CPU runs out of registers',
+    body: 'When a program needs more live variables than available registers, the compiler <strong>"spills"</strong> some to the stack (RAM). Each spill adds a store instruction, and reloading adds a load instruction — both hit memory, which is <strong>~100x slower</strong> than a register access. Hand-written assembly avoids spills by carefully mapping the 31 registers.',
+    analogy: 'Like a chef with limited counter space — if you have more ingredients than counters, you keep putting them in the fridge and taking them back out. Assembly gives you 31 counters and you decide what stays out.',
+  },
+  'isa-awareness': {
+    title: 'ISA-Aware Code',
+    aka: 'Coding to the instruction set architecture',
+    body: 'Every CPU family (ARM64, x86, RISC-V) has a unique <strong>instruction set architecture</strong> with different strengths. ARM64 favors: fixed-width 4-byte instructions (fast decoding), load/store separation (predictable pipelines), and instruction fusion (two ops merged into one). Writing assembly that exploits these traits beats what a generic compiler produces.',
+  },
+  'isa': {
+    title: 'ISA',
+    aka: 'Instruction Set Architecture',
+    body: 'The contract between software and hardware — it defines every instruction the CPU understands, how registers work, and how memory is addressed. <strong>ARM64 (AArch64)</strong> and <strong>x86-64</strong> are the two dominant ISAs today. They have fundamentally different design philosophies: ARM64 is RISC (simple, uniform instructions), x86-64 is CISC (complex, variable-length instructions).',
+    analogy: 'Like speaking different languages to different CPUs. ARM64 is Japanese (consistent grammar, every word is the same length). x86 is English (irregular rules, words vary from 1 to 15 bytes).',
+  },
+  'fixed-width': {
+    title: 'Fixed-Width Decoding',
+    aka: 'Every ARM64 instruction is exactly 4 bytes',
+    body: 'ARM64 instructions are always <strong>32 bits (4 bytes)</strong>. The CPU knows exactly where each instruction starts without scanning ahead. x86 instructions vary from 1 to 15 bytes, requiring a complex decoder. Fixed-width means ARM64 can decode <strong>8+ instructions per cycle</strong> in parallel — the front-end never stalls guessing instruction boundaries.',
+    analogy: 'Like a conveyor belt of identical boxes vs. a pile of packages in random sizes — fixed-size items are trivially fast to sort and process.',
+  },
+  'load-store': {
+    title: 'Load/Store Discipline',
+    aka: 'Separate memory ops from compute ops',
+    body: 'ARM64 is a <strong>load/store architecture</strong>: arithmetic instructions only work on registers, never directly on memory. You must explicitly load data from RAM into a register, compute, then store back. This separation keeps the CPU pipeline clean and predictable — the hardware always knows which instructions hit memory and which don\'t.',
+    analogy: 'Like a kitchen rule: ingredients go on the counter first, then you cook. You never chop directly inside the fridge. This discipline makes everything faster and more predictable.',
+  },
+  'instruction-fusion': {
+    title: 'Instruction Fusion',
+    aka: 'Two instructions executed as one',
+    body: 'Apple Silicon can fuse certain instruction pairs into a <strong>single operation</strong>. For example, a compare (<code>CMP</code>) followed by a branch (<code>B.EQ</code>) may execute as one fused micro-op. The CPU detects these patterns in the decode stage. Writing assembly that creates fusible pairs gives you <strong>free performance</strong> that compilers don\'t always achieve.',
+    analogy: 'Like a conveyor belt that spots two small packages going to the same address and merges them into one shipment — same result, half the handling.',
+  },
 };
 
 function initGlossary() {

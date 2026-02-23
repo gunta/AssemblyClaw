@@ -98,6 +98,64 @@ AssemblyClaw follows NullClaw's behavioral spec:
 - Same provider API format (OpenAI-compatible chat completions)
 - Exit 0 on success, exit 1 on error
 
+## Scripting Rules
+
+All `.ts` scripts in this repo run under **Bun** and must use Bun-native APIs exclusively.
+
+**Required:**
+- `Bun.file(path).text()` / `Bun.file(path).json()` — read files
+- `Bun.file(path).exists()` — check file existence
+- `Bun.file(path).size` — file size in bytes
+- `Bun.write(path, data)` — write files
+- `Bun.serve({ port, fetch })` — HTTP servers (fetch-handler pattern)
+- `Bun.spawn()` / `Bun.spawnSync()` — subprocesses
+- `Bun.env` — environment variables (not `process.env`)
+- `Bun.argv` — CLI arguments
+- `$` from `"bun"` — shell commands (Bun Shell)
+- `join` from `"node:path"` — path manipulation (Bun supports this natively)
+
+**Forbidden:**
+- `node:fs` — no `readFileSync`, `writeFileSync`, `existsSync`, `statSync`, `mkdirSync`, `mkdtempSync`, `rmSync`
+- `node:os` — no `tmpdir()`
+- `node:http` / `node:net` — no `createServer`
+- `process.env` — use `Bun.env` instead
+
+For directory operations use `$` shell: `await $\`mkdir -p ${dir}\``, `await $\`rm -rf ${dir}\``.
+
+## Release & Changelog
+
+**Every meaningful change** must add an entry to `CHANGELOG.md` under `## Unreleased`:
+- New features, bug fixes, refactors, build changes, dependency updates
+- One bullet per change, concise description
+- Skip trivial whitespace/comment-only changes
+
+**Version bump workflow:**
+
+```bash
+bun version.ts patch      # 0.1.0 → 0.1.1
+bun version.ts minor      # 0.1.0 → 0.2.0
+bun version.ts major      # 0.1.0 → 1.0.0
+```
+
+This script:
+1. Bumps version in `include/constants.inc` and `src/version.s`
+2. Replaces `## Unreleased` in `CHANGELOG.md` with `## vX.Y.Z (date)`
+3. Git commits + tags `vX.Y.Z`
+
+**Release:**
+```bash
+git push && git push --tags
+```
+
+The CI workflow (`.github/workflows/release.yml`) then:
+- Creates a GitHub Release with the `assemblyclaw-macos-arm64` binary
+- Computes SHA256 of the source tarball
+- Auto-updates `Formula/assemblyclaw.rb` with the new version + hash
+
+**Version lives in 3 places** (the script keeps them in sync):
+- `include/constants.inc` — `.set VERSION_MAJOR/MINOR/PATCH`
+- `src/version.s` — string literals (`"X.Y.Z"` and full version string)
+
 ## Working with Assembly
 
 - Use `ninja debug` and `lldb ./build/debug/assemblyclaw` for debugging
