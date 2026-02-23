@@ -36,10 +36,10 @@ _version_print:
 .p2align 4
 
 _str_version:
-    .asciz  "0.1.0"
+    .asciz  "0.1.1"
 
 _str_version_full:
-    .ascii  "assemblyclaw 0.1.0 (arm64-apple-darwin)\n"
+    .ascii  "assemblyclaw 0.1.1 (arm64-apple-darwin)\n"
     .asciz  ""
 
 .set _str_version_full_len, . - _str_version_full - 1
