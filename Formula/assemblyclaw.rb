@@ -1,8 +1,8 @@
 class Assemblyclaw < Formula
   desc "World's smallest AI agent infrastructure — pure ARM64 assembly"
   homepage "https://github.com/gunta/AssemblyClaw"
-  url "https://github.com/gunta/AssemblyClaw/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "ae5158d4716a5384e55c733e82fad44a1e36cf8f57f1b6288039eaf00a1d433a"
+  url "https://github.com/gunta/AssemblyClaw/archive/refs/tags/v0.1.1.tar.gz"
+  sha256 "70965924089369d38c87c4b32d9a3ba601a93d61f26dd684fcedd8b27c9b4abe"
   license "MIT"
   head "https://github.com/gunta/AssemblyClaw.git", branch: "main"
 
