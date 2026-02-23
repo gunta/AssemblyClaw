@@ -47,14 +47,6 @@ _config_load:
     add     x23, x23, _g_config@PAGEOFF
     str     xzr, [x23, #CFG_LOADED]
 
-    // Ensure ~/.assemblyclaw exists so bootstrap can write template later.
-    adrp    x0, _str_cfg_home_dir@PAGE
-    add     x0, x0, _str_cfg_home_dir@PAGEOFF
-    bl      _path_expand_home
-    cbz     x0, .Lcfg_not_found
-    mov     x1, #493                    // 0755
-    bl      _mkdir
-
     // Read "~/.assemblyclaw/config.json" (auto-bootstrap on first run)
     adrp    x0, _str_cfg_home_path@PAGE
     add     x0, x0, _str_cfg_home_path@PAGEOFF

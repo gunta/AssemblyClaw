@@ -105,10 +105,16 @@ produce compatible results for equivalent inputs.
 |---|--------|--------|----------|--------|
 | 9.1 | Binary size | < 32 KB | 36.63 KB | [ ] |
 | 9.2 | Peak RSS | < 128 KB | 5552 KB | [ ] |
-| 9.3 | Startup (--help) | < 0.1 ms | 4.5 ms | [ ] |
+| 9.3 | Startup (--help) | < 0.1 ms | 6.759 ms | [ ] |
 | 9.4 | strlen 1KB string | < 100 ns | — | [ ] |
 | 9.5 | JSON parse 4KB | < 10 us | — | [ ] |
 | 9.6 | Config load | < 1 ms | — | [ ] |
+
+Benchmark run conditions (from `site/public/benchmarks.json`):
+- Date (UTC): `2026-02-23T05:21:13.042Z`
+- Machine: `Mac16,5` (`Apple M4 Max`, `64 GB RAM`)
+- OS: `macOS 26.3` (`25D125`)
+- Tooling: `hyperfine 1.20.0`, `/usr/bin/time -l`
 
 ## Running Tests
 
@@ -118,6 +124,7 @@ ninja bench        # Run benchmarks
 ```
 
 `ninja test` now runs `bun tests/run.ts` and currently passes all functional checks (1.x–8.x).
+`ninja bench` regenerates benchmark data at `site/public/benchmarks.json` (used by docs + landing page).
 
 ## Compatibility with NullClaw Spec
 

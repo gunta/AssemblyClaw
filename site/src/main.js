@@ -152,6 +152,114 @@ function initNavScroll() {
   });
 }
 
+const runtimeMetrics = {
+  binaryDisplay: '36 KB',
+};
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function formatDateUtc(iso) {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toISOString().replace('T', ' ').replace('.000Z', 'Z');
+}
+
+function logScaledWidth(value, maxValue) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  if (!Number.isFinite(maxValue) || maxValue <= 0) return 0;
+  const floor = 8;
+  const ratio = Math.log10(value + 1) / Math.log10(maxValue + 1);
+  return Math.min(100, Math.max(floor, floor + ratio * (100 - floor)));
+}
+
+function applyBenchmarkData(data) {
+  const languages = data?.languages;
+  if (!languages) return;
+
+  const rows = Array.from(document.querySelectorAll('[data-bench-row]'));
+  const maxByMetric = new Map();
+
+  for (const row of rows) {
+    const metric = row.dataset.benchMetric;
+    const lang = row.dataset.benchLang;
+    const value = languages?.[lang]?.[metric];
+    if (typeof metric === 'string' && typeof value === 'number' && Number.isFinite(value)) {
+      maxByMetric.set(metric, Math.max(maxByMetric.get(metric) ?? 0, value));
+    }
+  }
+
+  for (const row of rows) {
+    const metric = row.dataset.benchMetric;
+    const lang = row.dataset.benchLang;
+    if (!metric || !lang) continue;
+
+    const langData = languages[lang];
+    if (!langData) continue;
+
+    const value = langData[metric];
+    const display = langData[`${metric}_display`];
+    const fill = row.querySelector('[data-bench-fill]');
+    const valueEl = row.querySelector('[data-bench-value]');
+
+    if (typeof value === 'number' && Number.isFinite(value) && fill) {
+      const maxValue = maxByMetric.get(metric) ?? value;
+      const width = logScaledWidth(value, maxValue);
+      fill.dataset.width = width.toFixed(1);
+      if (fill.classList.contains('animated')) {
+        fill.style.setProperty('--bar-w', `${width}%`);
+      }
+    }
+
+    if (valueEl && typeof display === 'string' && display.length > 0) {
+      valueEl.textContent = display;
+    }
+  }
+
+  const asm = languages.assembly;
+  if (asm) {
+    const binaryKB = typeof asm.binary_kb === 'number' ? asm.binary_kb : null;
+    const startupMs = typeof asm.startup_ms === 'number' ? asm.startup_ms : null;
+    const ramKB = typeof asm.ram_kb === 'number' ? asm.ram_kb : null;
+
+    if (binaryKB !== null) setText('bench-hero-binary', Math.floor(binaryKB).toString());
+    if (startupMs !== null) setText('bench-hero-startup', Math.floor(startupMs).toString());
+    if (ramKB !== null) setText('bench-hero-ram', Math.floor(ramKB).toString());
+    if (typeof asm.binary_display === 'string') {
+      setText('bench-progression-asm-size', asm.binary_display);
+      runtimeMetrics.binaryDisplay = asm.binary_display;
+    }
+  }
+
+  const env = data.environment ?? {};
+  setText('bench-cond-machine', `${env.machine_model ?? '—'} (${env.arch ?? '—'})`);
+  setText('bench-cond-os', `${env.os ?? '—'} (${env.os_build ?? '—'})`);
+  setText('bench-cond-cpu', env.cpu ?? '—');
+  setText(
+    'bench-cond-memory',
+    typeof env.memory_gb === 'number' ? `${env.memory_gb} GB` : (env.memory_bytes ? `${env.memory_bytes} bytes` : '—')
+  );
+  setText('bench-cond-date', formatDateUtc(data.generated_at_utc));
+
+  const notes = Array.isArray(data?.methodology?.notes) ? data.methodology.notes.join(' ') : '';
+  if (notes) setText('bench-cond-notes', notes);
+}
+
+async function initBenchmarksFromJson() {
+  try {
+    const url = `${import.meta.env.BASE_URL}benchmarks.json`;
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    applyBenchmarkData(data);
+  } catch (err) {
+    console.warn('Benchmark JSON unavailable, using inline defaults.', err);
+  }
+}
+
 // ─── BENCHMARK BAR ANIMATIONS ───
 
 function initBenchmarkBars() {
@@ -202,7 +310,7 @@ function initTypingEffect() {
   const el = document.getElementById('typing-output');
   if (!el) return;
 
-  const text = 'Hello! I\'m running in < 32 KB of pure ARM64 assembly. How can I help you today?';
+  const text = `Hello! I'm running in ${runtimeMetrics.binaryDisplay} of pure ARM64 assembly. How can I help you today?`;
   let i = 0;
 
   const observer = new IntersectionObserver(
@@ -244,18 +352,93 @@ function initSmoothScroll() {
   });
 }
 
+// ─── SOURCE CODE VIEWER ───
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightASM(code) {
+  return code.split('\n').map((raw) => {
+    let line = escapeHtml(raw);
+
+    // Strings (must be first — protect from other replacements)
+    line = line.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="hl-string">$1</span>');
+
+    // Comments (// to end of line, but not inside strings)
+    line = line.replace(/(\/\/.*)$/g, '<span class="hl-comment">$1</span>');
+
+    // Directives (.global, .section, .include, .set, .p2align, .ascii, .asciz, .data, .text, .bss, .zero, .space, .byte, .quad, .long, .balign, .macro, .endm, .if, .endif, .equ, .extern, .type, .size, .loc, .file)
+    line = line.replace(/(?<![.\w])(\.(?:global|globl|section|include|set|p2align|balign|ascii|asciz|byte|short|long|quad|zero|space|data|text|bss|macro|endm|if|else|endif|equ|extern|type|size|loc|file|build_version|subsections_via_symbols))\b/g, '<span class="hl-directive">$1</span>');
+
+    // Labels (at start of line or after whitespace: _symbol: or .Llocal:)
+    line = line.replace(/^(\s*)((?:_[\w.]+|\.L[\w.]+):)/gm, '$1<span class="hl-label">$2</span>');
+
+    // Registers (x0-x30, w0-w30, sp, lr, fp, xzr, wzr, v0-v31, q0-q31, d0-d31, s0-s31)
+    line = line.replace(/\b((?:[xwvqds](?:[12]?[0-9]|3[01]))|sp|lr|fp|xzr|wzr)\b/g, '<span class="hl-register">$1</span>');
+
+    // Numbers (#imm, 0x hex, plain integers — but not inside already-highlighted spans)
+    line = line.replace(/(#-?(?:0x[0-9a-fA-F]+|\d+))\b/g, '<span class="hl-number">$1</span>');
+    line = line.replace(/\b(0x[0-9a-fA-F]+)\b/g, '<span class="hl-number">$1</span>');
+
+    return `<span class="line">${line}</span>`;
+  }).join('\n');
+}
+
+function initSourceViewer() {
+  const overlay = document.getElementById('source-overlay');
+  const filenameEl = document.getElementById('source-filename');
+  const linesEl = document.getElementById('source-lines');
+  const codeEl = document.getElementById('source-code');
+  const closeBtn = document.getElementById('source-close');
+  if (!overlay) return;
+
+  function open(filename) {
+    const base = import.meta.env.BASE_URL || '/';
+    fetch(`${base}source/${filename}`)
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then((code) => {
+        const lineCount = code.split('\n').length;
+        filenameEl.textContent = filename;
+        linesEl.textContent = `${lineCount} lines`;
+        codeEl.innerHTML = highlightASM(code);
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch((err) => console.warn('Failed to load source:', err));
+  }
+
+  function close() {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Click handlers on file entries
+  document.querySelectorAll('.file-entry[data-file]').forEach((entry) => {
+    entry.addEventListener('click', () => open(entry.dataset.file));
+  });
+
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) close();
+  });
+}
+
 // ─── INIT ───
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const canvas = document.getElementById('hero-canvas');
   if (canvas) new CircuitCanvas(canvas);
 
+  await initBenchmarksFromJson();
   initScrollReveal();
   initNavScroll();
   initBenchmarkBars();
   initCopyButtons();
   initTypingEffect();
   initSmoothScroll();
+  initSourceViewer();
 
   // trigger hero reveals immediately with stagger
   const heroReveals = document.querySelectorAll('.hero .reveal');

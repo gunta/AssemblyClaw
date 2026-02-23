@@ -1,0 +1,13 @@
+# macOS / editor noise
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build outputs
+/build/
+
+# Site (Vite + Bun) generated artifacts
+/site/dist/
+/site/node_modules/
+/site/.vite/

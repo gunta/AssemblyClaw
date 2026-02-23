@@ -267,10 +267,17 @@ const results: Result[] = [];
 
   const homeMissing = mkdtempSync(join(tmpdir(), "assemblyclaw-test-"));
   const r52 = runBinary(["status"], homeMissing);
+  let autoCreatedTemplate = false;
+  try {
+    const generated = readFileSync(join(homeMissing, ".assemblyclaw", "config.json"), "utf8");
+    autoCreatedTemplate = generated.includes("\"default_provider\": \"openrouter\"");
+  } catch {
+    autoCreatedTemplate = false;
+  }
   results.push({
     id: "5.2",
     name: NAMES["5.2"],
-    pass: r52.code === 0 && r52.out.includes("not configured"),
+    pass: r52.code === 0 && r52.out.includes("not configured") && autoCreatedTemplate,
   });
 
   const homeMalformed = makeHome(undefined, "not-json");

@@ -3,7 +3,7 @@
 **The world's smallest and fastest AI agent infrastructure. Pure ARM64 assembly.**
 
 ```
-< 32 KB binary · < 0.1 ms startup · < 128 KB RAM · Zero dependencies beyond libSystem
+36 KB binary · 6 ms startup (--help) · 5 MB peak RSS · libSystem + libcurl
 ```
 
 ## Why
@@ -13,8 +13,8 @@ way to iterate and get community hooked. Ship value first, then optimize.
 
 The natural progression:
 1. **TypeScript** — ship fast, build community, iterate
-2. **Zig** — harden it, single binary, zero overhead (NullClaw: 678 KB)
-3. **ARM64 Assembly** — absolute minimum, prove the point (AssemblyClaw: < 32 KB)
+2. **Zig** — harden it, single binary, zero overhead
+3. **ARM64 Assembly** — absolute minimum, prove the point (AssemblyClaw: 36 KB now, targeting < 32 KB)
 
 This project proves that with the spec in hand, AI coding agents can write and
 maintain even assembly. The future is Bend (GPU parallelism), Lean 4 (zero bugs),
@@ -22,16 +22,39 @@ and languages we haven't invented yet.
 
 ## Benchmark
 
+Latest measured run (source of truth: `site/public/benchmarks.json`):
+- **Run date (UTC):** 2026-02-23T21:38:56.880Z
+- **Machine:** Mac16,5 (Apple M4 Max, 64 GB RAM)
+- **OS:** macOS 26.3 (build 25D125)
+- **Method:** `hyperfine --shell=none --warmup 10 --min-runs 50 --time-unit millisecond ./build/assemblyclaw --help` + `/usr/bin/time -l ./build/assemblyclaw --help`
+
 | | OpenClaw (TS) | NullClaw (Zig) | CClaw (C) | **AssemblyClaw (ARM64)** |
 |---|---|---|---|---|
-| **Binary** | ~28 MB | 678 KB | ~100 KB | **< 32 KB** |
-| **RAM** | > 1 GB | ~1 MB | ~3 MB | **< 128 KB** |
-| **Startup** | > 500 ms | < 2 ms | < 5 ms | **< 0.1 ms** |
+| **Binary** | 41 MB | 2 MB | 143 KB | **36 KB** |
+| **RAM** | 372 MB | 1 MB | 5 MB | **5 MB** |
+| **Startup** | 1163 ms | 8 ms | 11 ms | **6 ms** |
 | **Language** | TypeScript | Zig | C | **ARM64 Assembly** |
 | **Cost** | Mac Mini $599 | Any $5 hardware | Any $10 hardware | **Any $1 hardware** |
 
+Targets remain:
+- Binary `< 32 KB`
+- Peak RSS `< 128 KB`
+- Startup `< 0.1 ms`
+
+`ninja bench` regenerates `site/public/benchmarks.json`, and the landing page reads from that JSON directly.
+
+Comparison provenance for this run:
+- OpenClaw measured from `openclaw@latest` CLI package (`2026.2.22-2`)
+- NullClaw measured from latest release binary (`nullclaw 2026.2.21`, tag `v2026.2.21`)
+- CClaw measured from local `context/cclaw-main` snapshot (`CClaw 0.1.0`)
+
+`bun bench.ts` now automates comparator fetch/build/benchmark:
+- OpenClaw package install/update
+- NullClaw git fetch + Zig release build (falls back to latest macOS arm64 release binary if source build fails)
+- CClaw latest upstream fetch/build from `https://github.com/aresbit/cclaw.git` (or `CCLAW_REPO_URL` override, with local snapshot fallback)
+
 > Currently targeting Apple Silicon (M4 Pro/Max) because that's what I have.
-> But at < 32 KB with pure ARM64, there's nothing stopping this from running on
+> Even at 36 KB today (and targeting < 32 KB) with pure ARM64, there's nothing stopping this from running on
 > the cheapest ARM board that exists. This is about what's *possible*.
 
 ## Install

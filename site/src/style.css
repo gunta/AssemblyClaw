@@ -676,6 +676,97 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
   margin-bottom: 1.75rem;
 }
 
+.benchmark-card--conditions {
+  grid-column: 1 / -1;
+}
+
+.benchmark-card-toggle {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.benchmark-card-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.benchmark-card-toggle::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+details.benchmark-card--conditions[open] > .benchmark-card-toggle::after {
+  transform: rotate(45deg);
+}
+
+.benchmark-card-toggle:hover {
+  color: var(--accent-green);
+}
+
+.benchmark-card-toggle:hover::after {
+  border-color: var(--accent-green);
+}
+
+details.benchmark-card--conditions[open] > .benchmark-card-toggle {
+  margin-bottom: 1.75rem;
+}
+
+.benchmark-conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.benchmark-condition {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+}
+
+.condition-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.condition-value {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.benchmark-conditions-note {
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.benchmark-conditions-note code,
+.condition-value code {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--accent-green);
+}
+
 .cost-speed {
   margin-top: 2.25rem;
   padding: 1.4rem;
@@ -1041,6 +1132,166 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
   color: var(--text-muted);
 }
 
+.file-entry[data-file] {
+  cursor: pointer;
+}
+
+.file-entry[data-file]:hover .file-name {
+  color: var(--accent-green);
+}
+
+.file-tree-header--sub {
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+}
+
+/* ═══════════ SOURCE VIEWER ═══════════ */
+
+.source-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 10, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s var(--ease-out-expo), visibility 0.3s;
+}
+
+.source-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.source-modal {
+  width: min(92vw, 920px);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transform: scale(0.96) translateY(12px);
+  transition: transform 0.35s var(--ease-out-expo);
+  box-shadow:
+    0 0 0 1px rgba(0, 232, 123, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.source-overlay.active .source-modal {
+  transform: scale(1) translateY(0);
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.source-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.source-filename {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.source-lines {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.source-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.source-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.source-body {
+  overflow: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-elevated) transparent;
+}
+
+.source-body::-webkit-scrollbar { width: 6px; height: 6px; }
+.source-body::-webkit-scrollbar-track { background: transparent; }
+.source-body::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+
+.source-pre {
+  margin: 0;
+  padding: 1.25rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  counter-reset: line;
+  tab-size: 8;
+}
+
+.source-pre .line {
+  display: block;
+  padding: 0 1.5rem 0 4.5rem;
+  position: relative;
+  min-height: 1.7em;
+}
+
+.source-pre .line:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.source-pre .line::before {
+  content: counter(line);
+  counter-increment: line;
+  position: absolute;
+  left: 0;
+  width: 3.5rem;
+  padding-right: 1rem;
+  text-align: right;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Syntax highlighting — Silicon Noir palette */
+.hl-comment  { color: #4A4A5C; font-style: italic; }
+.hl-label    { color: var(--accent-green); font-weight: 600; }
+.hl-directive { color: var(--accent-orange); }
+.hl-register { color: var(--accent-blue); }
+.hl-number   { color: #5CE0A8; }
+.hl-string   { color: #E8965A; }
+.hl-section  { color: var(--accent-orange); font-weight: 600; }
+
 /* ═══════════ INSTALL ═══════════ */
 .install {
   padding: clamp(80px, 12vw, 140px) 0;
@@ -1401,6 +1652,10 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
     grid-template-columns: 1fr;
   }
 
+  .benchmark-conditions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .arch-grid {
     grid-template-columns: 1fr;
   }
@@ -1436,6 +1691,10 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
 
   .bar-row {
     grid-template-columns: 70px 1fr 65px;
+  }
+
+  .benchmark-conditions-grid {
+    grid-template-columns: 1fr;
   }
 
   .cost-speed {

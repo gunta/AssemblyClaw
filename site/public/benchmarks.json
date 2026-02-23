@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-23T21:43:33.903Z",
+  "git_commit": "67d3950",
+  "source_binary": "./build/assemblyclaw",
+  "targets": {
+    "binary_kb": 32,
+    "peak_rss_kb": 128,
+    "startup_help_ms": 0.1
+  },
+  "environment": {
+    "os": "macOS 26.3",
+    "os_build": "25D125",
+    "arch": "arm64",
+    "machine_model": "Mac16,5",
+    "cpu": "Apple M4 Max",
+    "memory_bytes": 68719476736,
+    "memory_gb": 64,
+    "hyperfine_version": "1.20.0"
+  },
+  "methodology": {
+    "startup_help": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
+      "command": "./build/assemblyclaw --help"
+    },
+    "comparator_startup_help": {
+      "tool": "hyperfine 1.20.0",
+      "args": "--shell=none --warmup 10 --min-runs 50 --time-unit millisecond",
+      "command_file": "./build/bench.compare.hyperfine.json"
+    },
+    "binary_size": {
+      "tool": "stat / du",
+      "command": "stat -f%z ./build/assemblyclaw (+ du -sk for OpenClaw dist)"
+    },
+    "peak_rss": {
+      "tool": "/usr/bin/time -l",
+      "command": "<binary> --help"
+    },
+    "notes": [
+      "Values are measured locally on this machine.",
+      "Display strings are integer-only by design (no decimal places).",
+      "TypeScript: 2026.2.22-2 (npm openclaw@latest)",
+      "Zig: nullclaw 2026.2.21 (github release v2026.2.21)",
+      "C: CClaw 0.1.0 (git https://github.com/aresbit/cclaw.git@1eab2d0)"
+    ]
+  },
+  "languages": {
+    "assembly": {
+      "name": "Assembly",
+      "binary_kb": 36.63,
+      "binary_bytes": 37504,
+      "binary_display": "36 KB",
+      "ram_kb": 5568,
+      "ram_bytes": 5701632,
+      "ram_display": "5 MB",
+      "startup_ms": 7.322069196765503,
+      "startup_display": "7 ms"
+    },
+    "typescript": {
+      "name": "TypeScript",
+      "binary_kb": 42712,
+      "binary_display": "41 MB",
+      "ram_kb": 380944,
+      "ram_display": "372 MB",
+      "startup_ms": 821.7643807599999,
+      "startup_display": "821 ms"
+    },
+    "zig": {
+      "name": "Zig",
+      "binary_kb": 2221.35,
+      "binary_display": "2 MB",
+      "ram_kb": 1776,
+      "ram_display": "1 MB",
+      "startup_ms": 5.353891852941178,
+      "startup_display": "5 ms"
+    },
+    "c": {
+      "name": "C",
+      "binary_kb": 143.8,
+      "binary_display": "143 KB",
+      "ram_kb": 5728,
+      "ram_display": "5 MB",
+      "startup_ms": 8.139698258620692,
+      "startup_display": "8 ms"
+    }
+  },
+  "extra_metrics": {
+    "page_faults": 1,
+    "involuntary_context_switches": 6,
+    "instructions_retired": 21837639
+  },
+  "status": {
+    "binary_target_met": false,
+    "peak_rss_target_met": false,
+    "startup_target_met": false
+  }
+}
