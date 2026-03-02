@@ -1,5 +1,5 @@
 // memory.s — Arena allocator (mmap-backed)
-// ARM64 macOS — M4/M5 Pro/Max optimized
+// ARM64 macOS
 //
 // Zero-fragmentation arena with 64KB pages.
 // All allocations are 16-byte aligned (NEON friendly).

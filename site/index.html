@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AssemblyClaw — The world's smallest AI agent infrastructure</title>
+  <title>AssemblyClaw — The world's smallest AI agent</title>
   <meta name="description" content="Pure ARM64 assembly AI agent. Latest measured: 35 KB binary, 4 ms startup, 1 MB peak RSS.">
   <meta property="og:title" content="AssemblyClaw — Pure ARM64 Assembly AI Agent">
   <meta property="og:description" content="Pure ARM64 assembly AI agent. Latest measured: 35 KB binary, 4 ms startup, 1 MB peak RSS.">
@@ -54,8 +54,8 @@
         <span class="hero-line">AI agent.</span>
       </h1>
       <p class="hero-sub reveal">
-        Pure <span class="term" data-term="arm64">ARM64</span> assembly. Zero dependencies beyond <span class="term" data-term="libsystem">libSystem</span>.<br>
-        Built to prove that assembly is within reach when you have a spec and an AI.
+        Pure <span class="term" data-term="arm64">ARM64</span> assembly. No bundled dependencies.<br>
+        Built to prove a practical agent CLI can stay small while remaining usable.
       </p>
 
       <div class="hero-stats reveal">
@@ -72,15 +72,9 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-value" id="bench-hero-ram">1328</span>
+          <span class="stat-value" id="bench-hero-ram">1312</span>
           <span class="stat-unit">KB</span>
           <span class="stat-label">RAM</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-value">0</span>
-          <span class="stat-unit"></span>
-          <span class="stat-label">Dependencies</span>
         </div>
       </div>
 
@@ -124,7 +118,7 @@
           <div class="step-content">
             <h3>TypeScript</h3>
             <p>Ship fast, build community, iterate.</p>
-            <span class="step-size">~28 MB</span>
+            <span class="step-size">41 MB</span>
           </div>
         </div>
         <div class="timeline-step reveal" data-step="2">
@@ -134,7 +128,7 @@
           <div class="step-content">
             <h3>Zig</h3>
             <p>Harden it, <span class="term" data-term="single-binary">single binary</span>, zero overhead.</p>
-            <span class="step-size">678 KB</span>
+            <span class="step-size">2 MB</span>
           </div>
         </div>
         <div class="timeline-step reveal" data-step="3">
@@ -144,7 +138,7 @@
           <div class="step-content">
             <h3>C</h3>
             <p>Close to metal, portable, proven.</p>
-            <span class="step-size">~100 KB</span>
+            <span class="step-size">143 KB</span>
           </div>
         </div>
         <div class="timeline-step reveal active" data-step="4">
@@ -229,7 +223,7 @@
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="typescript">
               <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
-              <span class="bar-value" data-bench-value>359 MB</span>
+              <span class="bar-value" data-bench-value>370 MB</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="zig">
               <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
@@ -256,7 +250,7 @@
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="typescript">
               <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
-              <span class="bar-value" data-bench-value>842 ms</span>
+              <span class="bar-value" data-bench-value>754 ms</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="zig">
               <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
@@ -266,7 +260,7 @@
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="c">
               <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
               <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="25" data-color="c"></div></div>
-              <span class="bar-value" data-bench-value>8 ms</span>
+              <span class="bar-value" data-bench-value>7 ms</span>
             </div>
             <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="assembly">
               <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
@@ -381,7 +375,7 @@
             </div>
           </div>
           <p class="benchmark-conditions-note" id="bench-cond-notes">
-            Measured on a local release build using hyperfine and <code>/usr/bin/time -l</code>.
+            Measured on a local release build using hyperfine and <code>/usr/bin/time -l</code>. Executable links against <code>libSystem</code>; HTTP uses system <code>libcurl</code> at runtime.
           </p>
         </details>
       </div>
@@ -396,7 +390,7 @@
         Pure silicon<br><em>craftsmanship.</em>
       </h2>
       <p class="section-description reveal">
-        Optimized for <span class="term" data-term="apple-silicon">Apple Silicon</span> M4/M5 Pro/Max. Every instruction chosen with purpose.
+        Optimized for <span class="term" data-term="apple-silicon">Apple Silicon</span> ARM64 macOS builds. Every instruction is explicit and reviewable.
       </p>
 
       <div class="arch-grid">
@@ -409,12 +403,12 @@
           <div class="arch-feature reveal">
             <div class="arch-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></div>
             <h4><span class="term" data-term="cache-aligned">Cache-Aligned</span></h4>
-            <p>128-byte alignment tuned for M4 <span class="term" data-term="cache-lines">cache lines</span></p>
+            <p>16-byte allocation alignment with page-based arena growth for predictable memory behavior</p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12h16M20 12l-4-4M20 12l-4 4"/></svg></div>
             <h4><span class="term" data-term="branchless">Branchless</span></h4>
-            <p><span class="term" data-term="csel">CSEL</span>/<span class="term" data-term="csetm">CSETM</span> for conditional operations — no <span class="term" data-term="branch-prediction">branch prediction</span> misses</p>
+            <p><span class="term" data-term="csel">CSEL</span> is used in selected hot paths to reduce branching overhead</p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div>
@@ -428,8 +422,8 @@
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v7M12 14v7"/><circle cx="12" cy="12" r="3"/><path d="M5 12H9M15 12h4"/></svg></div>
-            <h4>Direct <span class="term" data-term="syscalls">Syscalls</span></h4>
-            <p><span class="term" data-term="libsystem">libSystem</span> <span class="term" data-term="ffi">FFI</span> — no <span class="term" data-term="libc">libc</span> wrapper tax</p>
+            <h4><span class="term" data-term="libsystem">libSystem</span> Calls</h4>
+            <p>Core operations call macOS APIs via libSystem symbols; HTTP is handled through libcurl FFI</p>
           </div>
           <div class="arch-feature reveal">
             <div class="arch-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16"/><path d="M8 4v16" opacity=".4"/><path d="M12 4v16"/><path d="M16 4v16" opacity=".4"/></svg></div>
@@ -550,7 +544,7 @@
                 <span class="terminal-cmd">assemblyclaw --version</span>
               </div>
               <div class="terminal-line terminal-line--output">
-                <span class="terminal-output">assemblyclaw 0.1.0 (arm64-apple-macos)</span>
+                <span class="terminal-output">assemblyclaw 0.1.0 (arm64-apple-darwin)</span>
               </div>
               <div class="terminal-line">
                 <span class="terminal-prompt">$</span>
@@ -632,19 +626,17 @@
       <div class="author-card reveal">
         <div class="author-intro">
           <div class="author-eyebrow">Built by</div>
-          <h2 class="author-name">Gunther Brunner</h2>
-          <p class="author-tagline">Design Engineer &middot; Tokyo</p>
+          <h2 class="author-name">Günther Brunner</h2>
+          <p class="author-tagline">Design Engineer</p>
         </div>
         <div class="author-bio">
           <p>
-            I'm a design engineer based in Tokyo since 2007. I build things at the intersection of
-            precision engineering and creative product design &mdash; from open-source tools used by
-            hundreds of companies to AI agent infrastructure written in pure assembly.
+            Shipping products where precision meets creativity &mdash; from open-source tools
+            adopted by hundreds of companies to AI agent written in pure assembly.
           </p>
           <p>
-            Previously created <strong>OpenSTF</strong> (13k+ GitHub stars, adopted by Netflix, Alibaba, and Google).
-            Currently shipping AI products at CyberAgent and running <strong>G Productions</strong>,
-            a studio focused on design systems and fractional engineering.
+            Creator of <strong>OpenSTF</strong> (13k+ GitHub stars, used by Netflix, Alibaba, and Google).
+            Organizer of the <strong>AI Code Agents Festival</strong> Tokyo.
           </p>
         </div>
         <div class="author-cta">
@@ -681,7 +673,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>Built with pure ARM64 assembly. Designed with Paper.</p>
+        <p>Built with ARM64 assembly.</p>
       </div>
     </div>
   </footer>

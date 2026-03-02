@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Docs/LP fact-check pass: synchronized benchmark numbers with `site/public/benchmarks.json` and clarified dependency/runtime wording (`libSystem` link + runtime `libcurl` for HTTP).
+- Restored brand line wording: "The world's smallest AI agent infrastructure" across LP title/hero, README, CLI help banner, and formula description.
+- Restored story-first narrative copy in README and LP future/author sections.
+
 ## v0.1.1 (2026-02-23)
 
 ## v0.1.0 (2025-02-24)

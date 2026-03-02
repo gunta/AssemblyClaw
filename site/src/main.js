@@ -443,7 +443,7 @@ const glossary = {
   'apple-silicon': {
     title: 'Apple Silicon',
     aka: 'Apple\'s ARM64-based SoC family',
-    body: 'Apple\'s custom chips (M1, M2, M3, M4, M5) that power Macs, iPads, and iPhones. They use the <strong>ARM64 instruction set</strong> and feature unified memory (CPU and GPU share the same RAM), high-efficiency cores, and wide decode pipelines that can execute 8+ instructions per cycle.',
+    body: 'Apple\'s custom chips (M1, M2, M3, M4, M5) that power Macs, iPads, and iPhones. They use the <strong>ARM64 instruction set</strong> and unified memory (CPU and GPU share the same RAM).',
   },
   'neon-simd': {
     title: 'NEON SIMD',
@@ -471,18 +471,18 @@ const glossary = {
   'cache-aligned': {
     title: 'Cache-Aligned',
     aka: 'Memory alignment to cache line boundaries',
-    body: 'Placing data at memory addresses that are <strong>exact multiples of the cache line size</strong>. On Apple M4/M5, cache lines are 128 bytes. When data is aligned, the CPU loads it in one read. Misaligned data can straddle two cache lines, causing two reads — doubling the latency.',
+    body: 'Placing data at memory addresses that are <strong>exact multiples of an alignment boundary</strong>. Good alignment can reduce split loads and keep memory access patterns predictable.',
     analogy: 'Like parking a car perfectly within the lines vs. across two spaces — aligned data takes one "parking spot read," misaligned takes two.',
   },
   'cache-lines': {
     title: 'Cache Lines',
     aka: 'Smallest unit of CPU cache transfer',
-    body: 'The smallest chunk of data the CPU moves between main memory and its fast on-chip cache. On <strong>Apple M4/M5, each cache line is 128 bytes</strong>. When you access one byte, the CPU actually fetches the entire 128-byte line containing it. Alignment ensures your data structures don\'t straddle two lines.',
+    body: 'The smallest chunk of data the CPU moves between main memory and its fast on-chip cache. Accessing one byte can pull in a whole line, so alignment and locality matter for performance.',
   },
   'branchless': {
     title: 'Branchless Code',
     aka: 'Avoiding conditional jumps',
-    body: 'Code written to avoid <code>if/else</code> jumps entirely. Modern CPUs <strong>speculate</strong> which branch to take — when they guess wrong, they waste ~12 cycles flushing the pipeline. Branchless code uses conditional-select instructions (<strong>CSEL/CSETM</strong>) instead, guaranteeing constant execution time regardless of the data.',
+    body: 'Code written to reduce conditional jumps in hot paths. Modern CPUs speculate on branches; reducing unpredictable branches can improve throughput. One approach is using conditional-select instructions like <strong>CSEL</strong>.',
     analogy: 'Instead of asking "should I go left or right?" at every fork, you walk both paths simultaneously and pick the result at the end.',
   },
   'csel': {
@@ -499,7 +499,7 @@ const glossary = {
   'branch-prediction': {
     title: 'Branch Prediction',
     aka: 'CPU speculative execution',
-    body: 'The CPU\'s mechanism for <strong>guessing</strong> which way an if/else will go before it\'s actually computed. Correct guesses keep the pipeline full. Wrong guesses ("mispredicts") cost <strong>~12–14 cycles</strong> on Apple Silicon as the CPU flushes speculative work and restarts from the correct path.',
+    body: 'The CPU\'s mechanism for <strong>guessing</strong> which way an if/else will go before it\'s actually computed. Correct guesses keep the pipeline full; wrong guesses require speculative work to be discarded and redone.',
     analogy: 'Like pre-loading the next webpage you think the user will click. Guess right → instant load. Guess wrong → visible delay while you fetch the actual page.',
   },
   'arena-allocator': {
@@ -538,7 +538,7 @@ const glossary = {
   'syscalls': {
     title: 'System Calls',
     aka: 'Direct kernel requests',
-    body: 'Requests from a program to the <strong>operating system kernel</strong>. When AssemblyClaw calls write() or read(), it triggers a hardware exception that transfers control to macOS, which performs the I/O and returns. No middleman library code — the most direct path from code to kernel.',
+    body: 'Requests from a program to the <strong>operating system kernel</strong>. In this project, assembly code calls macOS APIs exposed by libSystem (such as write/read wrappers) rather than issuing raw syscall instructions directly.',
     analogy: 'Like yelling directly at the OS: "Write these bytes to this file!" — no receptionist, no queue, just a direct line.',
   },
   'ffi': {
@@ -550,7 +550,7 @@ const glossary = {
   'libc': {
     title: 'libc',
     aka: 'C Standard Library',
-    body: 'The C standard library provides convenience wrappers like <strong>printf()</strong>, <strong>malloc()</strong>, <strong>strlen()</strong> around raw system calls. These wrappers add overhead — argument validation, buffering, errno handling. AssemblyClaw bypasses them and calls the underlying OS functions directly, shaving off every unnecessary instruction.',
+    body: 'The C standard library provides convenience APIs like <strong>printf()</strong>, <strong>malloc()</strong>, and <strong>strlen()</strong>. AssemblyClaw mixes direct symbol calls with custom assembly implementations depending on the path.',
   },
   'single-binary': {
     title: 'Single Binary',
@@ -572,7 +572,7 @@ const glossary = {
   'spilling': {
     title: 'Register Spilling',
     aka: 'When the CPU runs out of registers',
-    body: 'When a program needs more live variables than available registers, the compiler <strong>"spills"</strong> some to the stack (RAM). Each spill adds a store instruction, and reloading adds a load instruction — both hit memory, which is <strong>~100x slower</strong> than a register access. Hand-written assembly avoids spills by carefully mapping the 31 registers.',
+    body: 'When a program needs more live variables than available registers, the compiler <strong>"spills"</strong> some values to the stack (memory). Spills add extra loads/stores and can increase latency; hand-written assembly can reduce this by careful register planning.',
     analogy: 'Like a chef with limited counter space — if you have more ingredients than counters, you keep putting them in the fridge and taking them back out. Assembly gives you 31 counters and you decide what stays out.',
   },
   'isa-awareness': {
@@ -589,7 +589,7 @@ const glossary = {
   'fixed-width': {
     title: 'Fixed-Width Decoding',
     aka: 'Every ARM64 instruction is exactly 4 bytes',
-    body: 'ARM64 instructions are always <strong>32 bits (4 bytes)</strong>. The CPU knows exactly where each instruction starts without scanning ahead. x86 instructions vary from 1 to 15 bytes, requiring a complex decoder. Fixed-width means ARM64 can decode <strong>8+ instructions per cycle</strong> in parallel — the front-end never stalls guessing instruction boundaries.',
+    body: 'ARM64 instructions are always <strong>32 bits (4 bytes)</strong>. The CPU knows exactly where each instruction starts without scanning ahead. x86 instructions vary in length, which requires more complex decode logic.',
     analogy: 'Like a conveyor belt of identical boxes vs. a pile of packages in random sizes — fixed-size items are trivially fast to sort and process.',
   },
   'load-store': {

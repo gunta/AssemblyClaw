@@ -1,0 +1,12 @@
+{
+  "name": "assemblyclaw",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Tiny AI agent infrastructure in pure ARM64 assembly",
+  "scripts": {
+    "build": "bun x.ts build",
+    "test": "bun x.ts test",
+    "bench": "bun x.ts bench",
+    "release": "bun x.ts release patch"
+  }
+}

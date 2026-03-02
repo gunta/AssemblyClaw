@@ -1,5 +1,5 @@
 // string.s — NEON SIMD string operations
-// ARM64 macOS — M4/M5 Pro/Max optimized
+// ARM64 macOS
 //
 // Key optimizations:
 //   - 16 bytes/cycle null scan with CMEQ + UMAXV

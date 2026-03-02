@@ -2,7 +2,7 @@
 
 **Zero overhead. Zero compromise. 100% C.**
 
-CClaw is a C port of [ZeroClaw](https://github.com/theonlyhennygod/zeroclaw), a fast, small, and fully autonomous AI assistant infrastructure. It maintains the same architecture and feature set as the original Rust implementation while providing the performance and portability of C.
+CClaw is a C port of [ZeroClaw](https://github.com/theonlyhennygod/zeroclaw), a fast, small, and fully autonomous AI assistant. It maintains the same architecture and feature set as the original Rust implementation while providing the performance and portability of C.
 
 ## Features
 

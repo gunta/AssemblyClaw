@@ -924,7 +924,7 @@ _str_agent_usage:
 _str_no_message:
     .asciz  "error: -m flag requires a message argument"
 _str_config_err:
-    .asciz  "error: could not load config. edit ~/.assemblyclaw/config.json"
+    .asciz  "error: could not load config. edit ~/.assemblyclaw/config.json and set providers.<name>.api_key"
 
 _str_prompt:
     .asciz  "> "

@@ -1,5 +1,5 @@
 // json.s — Zero-allocation streaming JSON parser
-// ARM64 macOS — M4/M5 Pro/Max optimized
+// ARM64 macOS
 //
 // Minimal parser that can extract string values by key path.
 // No heap allocation — works directly on the input buffer.

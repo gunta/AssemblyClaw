@@ -1,8 +1,8 @@
 // main.s — AssemblyClaw entry point
-// ARM64 macOS — M4/M5 Pro/Max optimized
+// ARM64 macOS
 //
-// The world's smallest AI agent infrastructure.
-// Pure ARM64 assembly. < 32 KB binary.
+// Small AI agent infrastructure in pure ARM64 assembly.
+// Current measured binary is ~35 KB; target remains < 32 KB.
 //
 // CLI dispatch:
 //   assemblyclaw --help / -h / help    → print usage
@@ -190,7 +190,7 @@ _str_arena_fail:
     .asciz  "fatal: could not initialize memory arena"
 
 _str_usage:
-    .ascii  "assemblyclaw 0.1.0 — the world's smallest AI agent\n"
+    .ascii  "assemblyclaw 0.1.0 — the world's smallest AI agent infrastructure\n"
     .ascii  "\n"
     .ascii  "usage:\n"
     .ascii  "  assemblyclaw <command> [options]\n"
