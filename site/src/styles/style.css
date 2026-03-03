@@ -379,6 +379,7 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
 
 .hero-line {
   display: block;
+  white-space: nowrap;
 }
 
 .hero-line--accent {
