@@ -1,0 +1,63 @@
+---
+import type { Lang } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="progression" id="progression">
+  <div class="section-container">
+    <div class="section-eyebrow reveal">{t(lang, 'progression.eyebrow')}</div>
+    <h2 class="section-title reveal" set:html={t(lang, 'progression.title')} />
+    <p class="section-description reveal">{t(lang, 'progression.description')}</p>
+
+    <div class="progression-timeline">
+      <div class="timeline-track"></div>
+      <div class="timeline-step reveal" data-step="1">
+        <div class="step-marker">
+          <span class="step-number">01</span>
+        </div>
+        <div class="step-content">
+          <h3>TypeScript</h3>
+          <p>{t(lang, 'progression.ts')}</p>
+          <span class="step-size">41 MB</span>
+        </div>
+      </div>
+      <div class="timeline-step reveal" data-step="2">
+        <div class="step-marker">
+          <span class="step-number">02</span>
+        </div>
+        <div class="step-content">
+          <h3>Zig</h3>
+          <p set:html={t(lang, 'progression.zig')} />
+          <span class="step-size">2 MB</span>
+        </div>
+      </div>
+      <div class="timeline-step reveal" data-step="3">
+        <div class="step-marker">
+          <span class="step-number">03</span>
+        </div>
+        <div class="step-content">
+          <h3>C</h3>
+          <p>{t(lang, 'progression.c')}</p>
+          <span class="step-size">143 KB</span>
+        </div>
+      </div>
+      <div class="timeline-step reveal active" data-step="4">
+        <div class="step-marker">
+          <span class="step-number">04</span>
+          <span class="step-pulse"></span>
+        </div>
+        <div class="step-content">
+          <h3>ARM64 Assembly</h3>
+          <p>{t(lang, 'progression.asm')}</p>
+          <span class="step-size step-size--hero" id="bench-progression-asm-size">35 KB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

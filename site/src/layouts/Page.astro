@@ -1,0 +1,52 @@
+---
+import type { Lang } from '../i18n';
+import { t, getGlossary } from '../i18n';
+import Base from './Base.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import Progression from '../components/Progression.astro';
+import Benchmark from '../components/Benchmark.astro';
+import Architecture from '../components/Architecture.astro';
+import Install from '../components/Install.astro';
+import Future from '../components/Future.astro';
+import Thanks from '../components/Thanks.astro';
+import Author from '../components/Author.astro';
+import Footer from '../components/Footer.astro';
+import SourceViewer from '../components/SourceViewer.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const glossary = getGlossary(lang);
+const typingText = t(lang, 'typing.text');
+---
+
+<Base lang={lang}>
+  <Nav lang={lang} />
+  <Hero lang={lang} />
+  <Progression lang={lang} />
+  <Benchmark lang={lang} />
+  <Architecture lang={lang} />
+  <Install lang={lang} />
+  <Future lang={lang} />
+  <Thanks lang={lang} />
+  <Author lang={lang} />
+  <Footer lang={lang} />
+  <SourceViewer />
+
+  <script define:vars={{ glossary, typingText, lang }}>
+    window.__GLOSSARY__ = glossary;
+    window.__TYPING_TEXT__ = typingText;
+    window.__LANG__ = lang;
+  </script>
+  <script>
+    // Set language preference in localStorage
+    const lang = (window as any).__LANG__;
+    if (lang) {
+      localStorage.setItem('assemblyclaw-lang', lang);
+    }
+  </script>
+  <script src="../scripts/main.ts"></script>
+</Base>

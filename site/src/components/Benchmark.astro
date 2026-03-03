@@ -1,0 +1,223 @@
+---
+import type { Lang } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="benchmark" id="benchmark">
+  <div class="benchmark-halftone"></div>
+  <div class="section-container">
+    <div class="section-eyebrow reveal">{t(lang, 'benchmark.eyebrow')}</div>
+    <h2 class="section-title reveal" set:html={t(lang, 'benchmark.title')} />
+
+    <div class="cost-speed reveal">
+      <div class="cost-speed-head">
+        <h3>{t(lang, 'benchmark.cost.title')}</h3>
+        <p>{t(lang, 'benchmark.cost.desc')}</p>
+      </div>
+      <div class="cost-speed-plot" aria-label="Cost vs startup speed scatter plot">
+        <div class="cost-speed-point cost-speed-point--ts" style="--x: 92; --y: 92;"><span>TS</span></div>
+        <div class="cost-speed-point cost-speed-point--zig" style="--x: 18; --y: 28;"><span>Zig</span></div>
+        <div class="cost-speed-point cost-speed-point--c" style="--x: 15; --y: 36;"><span>C</span></div>
+        <div class="cost-speed-point cost-speed-point--asm" style="--x: 8; --y: 8;"><span>ASM</span></div>
+        <span class="cost-speed-label cost-speed-label--x">{t(lang, 'benchmark.cost.labelX')}</span>
+        <span class="cost-speed-label cost-speed-label--y">{t(lang, 'benchmark.cost.labelY')}</span>
+      </div>
+    </div>
+
+    <div class="benchmark-grid">
+      <!-- Binary Size -->
+      <div class="benchmark-card reveal">
+        <h3 class="benchmark-card-title">{t(lang, 'benchmark.card.binary')}</h3>
+        <div class="bars">
+          <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="typescript">
+            <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
+            <span class="bar-value" data-bench-value>41 MB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="zig">
+            <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="45" data-color="zig"></div></div>
+            <span class="bar-value" data-bench-value>2 MB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="c">
+            <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="25" data-color="c"></div></div>
+            <span class="bar-value" data-bench-value>143 KB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="binary_kb" data-bench-lang="assembly">
+            <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
+            <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="8" data-color="asm"></div></div>
+            <span class="bar-value bar-value--hero" data-bench-value>35 KB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAM Usage -->
+      <div class="benchmark-card reveal">
+        <h3 class="benchmark-card-title">{t(lang, 'benchmark.card.ram')}</h3>
+        <div class="bars">
+          <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="typescript">
+            <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
+            <span class="bar-value" data-bench-value>370 MB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="zig">
+            <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="30" data-color="zig"></div></div>
+            <span class="bar-value" data-bench-value>1 MB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="c">
+            <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="20" data-color="c"></div></div>
+            <span class="bar-value" data-bench-value>5 MB</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="ram_kb" data-bench-lang="assembly">
+            <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
+            <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="6" data-color="asm"></div></div>
+            <span class="bar-value bar-value--hero" data-bench-value>1 MB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Startup Time -->
+      <div class="benchmark-card reveal">
+        <h3 class="benchmark-card-title">{t(lang, 'benchmark.card.startup')}</h3>
+        <div class="bars">
+          <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="typescript">
+            <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="100" data-color="ts"></div></div>
+            <span class="bar-value" data-bench-value>754 ms</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="zig">
+            <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="18" data-color="zig"></div></div>
+            <span class="bar-value" data-bench-value>5 ms</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="c">
+            <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-bench-fill data-width="25" data-color="c"></div></div>
+            <span class="bar-value" data-bench-value>7 ms</span>
+          </div>
+          <div class="bar-row" data-bench-row data-bench-metric="startup_ms" data-bench-lang="assembly">
+            <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
+            <div class="bar-track"><div class="bar-fill bar-fill--hero" data-bench-fill data-width="4" data-color="asm"></div></div>
+            <span class="bar-value bar-value--hero" data-bench-value>4 ms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost -->
+      <div class="benchmark-card reveal">
+        <h3 class="benchmark-card-title">{t(lang, 'benchmark.card.cost')}</h3>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="bar-label">TypeScript <span class="bar-label-sub">OpenClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-width="100" data-color="ts"></div></div>
+            <span class="bar-value">$499</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Zig <span class="bar-label-sub">NullClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-width="10" data-color="zig"></div></div>
+            <span class="bar-value">$15</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">C <span class="bar-label-sub">CClaw</span></span>
+            <div class="bar-track"><div class="bar-fill" data-width="7" data-color="c"></div></div>
+            <span class="bar-value">$9</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Assembly <span class="bar-label-sub">AssemblyClaw</span></span>
+            <div class="bar-track"><div class="bar-fill bar-fill--hero" data-width="3" data-color="asm"></div></div>
+            <span class="bar-value bar-value--hero">$1.50</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="benchmark-card benchmark-card--hw-section reveal" style="grid-column: 1 / -1;">
+        <h3 class="benchmark-card-title">{t(lang, 'benchmark.card.hw')}</h3>
+        <p class="hw-section-subtitle">{t(lang, 'benchmark.hw.subtitle')}</p>
+        <div class="hw-cards">
+          <div class="hw-card hw-card--ts">
+            <div class="hw-card-header">
+              <span class="hw-card-lang">TS</span>
+              <span class="hw-card-price">$499</span>
+            </div>
+            <a href="https://www.apple.com/shop/buy-mac/mac-mini" target="_blank" rel="noopener" class="hw-card-name">Mac Mini M4</a>
+            <p class="hw-card-specs">Apple M4, 16 GB RAM, macOS 15</p>
+            <p class="hw-card-reason">{t(lang, 'benchmark.hw.ts.reason')}</p>
+          </div>
+          <div class="hw-card hw-card--zig">
+            <div class="hw-card-header">
+              <span class="hw-card-lang">Zig</span>
+              <span class="hw-card-price">$15</span>
+            </div>
+            <a href="https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/" target="_blank" rel="noopener" class="hw-card-name">Raspberry Pi Zero 2 W</a>
+            <p class="hw-card-specs">ARM Cortex-A53 1 GHz, 512 MB RAM, WiFi</p>
+            <p class="hw-card-reason">{t(lang, 'benchmark.hw.zig.reason')}</p>
+          </div>
+          <div class="hw-card hw-card--c">
+            <div class="hw-card-header">
+              <span class="hw-card-lang">C</span>
+              <span class="hw-card-price">$9</span>
+            </div>
+            <a href="https://milkv.io/duo" target="_blank" rel="noopener" class="hw-card-name">Milk-V Duo</a>
+            <p class="hw-card-specs">RISC-V C906 1 GHz, 64 MB RAM, Linux</p>
+            <p class="hw-card-reason">{t(lang, 'benchmark.hw.c.reason')}</p>
+          </div>
+          <div class="hw-card hw-card--asm">
+            <div class="hw-card-header">
+              <span class="hw-card-lang">ASM</span>
+              <span class="hw-card-price">~$1.50</span>
+            </div>
+            <a href="https://www.aliexpress.com/w/wholesale-esp32-c3.html" target="_blank" rel="noopener" class="hw-card-name">ESP32-C3 Super Mini</a>
+            <p class="hw-card-specs">RISC-V 160 MHz, 400 KB RAM, WiFi + BLE 5</p>
+            <p class="hw-card-reason">{t(lang, 'benchmark.hw.asm.reason')}</p>
+          </div>
+        </div>
+        <div class="hw-cost-prompt-wrap">
+          <p class="hw-cost-prompt">
+            <span>{t(lang, 'benchmark.hw.prompt')}</span>
+            <code>"Port AssemblyClaw to RISC-V assembly for the ESP32-C3 with ESP-IDF and mbedTLS. Keep the same CLI interface, arena allocator, and streaming JSON parser. Use ESP-TLS instead of libcurl for HTTPS."</code>
+          </p>
+        </div>
+      </div>
+
+      <details class="benchmark-card benchmark-card--conditions reveal">
+        <summary class="benchmark-card-title benchmark-card-toggle">{t(lang, 'benchmark.conditions')}</summary>
+        <div class="benchmark-conditions-grid">
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.machine')}</span>
+            <span class="condition-value" id="bench-cond-machine">Loading…</span>
+          </div>
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.os')}</span>
+            <span class="condition-value" id="bench-cond-os">Loading…</span>
+          </div>
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.cpu')}</span>
+            <span class="condition-value" id="bench-cond-cpu">Loading…</span>
+          </div>
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.memory')}</span>
+            <span class="condition-value" id="bench-cond-memory">Loading…</span>
+          </div>
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.lastrun')}</span>
+            <span class="condition-value" id="bench-cond-date">Loading…</span>
+          </div>
+          <div class="benchmark-condition">
+            <span class="condition-label">{t(lang, 'benchmark.cond.datasource')}</span>
+            <span class="condition-value"><code>site/public/benchmarks.json</code></span>
+          </div>
+        </div>
+        <p class="benchmark-conditions-note" id="bench-cond-notes" set:html={t(lang, 'benchmark.cond.notes')} />
+      </details>
+    </div>
+  </div>
+</section>

@@ -234,6 +234,34 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
   color: var(--text-primary) !important;
 }
 
+.lang-toggle {
+  display: flex;
+  gap: 0;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.lang-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: var(--text-muted) !important;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+
+.lang-btn:hover {
+  color: var(--text-secondary) !important;
+}
+
+.lang-btn.active {
+  background: var(--bg-hover);
+  color: var(--text-primary) !important;
+}
+
 /* ═══════════ HERO ═══════════ */
 .hero {
   position: relative;

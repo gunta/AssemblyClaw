@@ -1,0 +1,19 @@
+---
+import type { Lang } from '../i18n';
+import Head from '../components/Head.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang={lang}>
+<Head lang={lang} />
+<body>
+  <div class="noise-overlay"></div>
+  <slot />
+</body>
+</html>

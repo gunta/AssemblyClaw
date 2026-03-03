@@ -1,0 +1,102 @@
+---
+import type { Lang } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="install" id="install">
+  <div class="install-halftone"></div>
+  <div class="section-container">
+    <div class="section-eyebrow reveal">{t(lang, 'install.eyebrow')}</div>
+    <h2 class="section-title reveal" set:html={t(lang, 'install.title')} />
+
+    <div class="install-grid">
+      <div class="install-card reveal">
+        <div class="install-card-header">
+          <span class="install-card-badge">{t(lang, 'install.homebrew.badge')}</span>
+          <h3>{t(lang, 'install.homebrew.title')}</h3>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-title">Terminal</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">brew install gunta/assemblyclaw/assemblyclaw</span>
+              <button class="copy-btn" data-copy="brew install gunta/assemblyclaw/assemblyclaw" aria-label="Copy command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-card reveal">
+        <div class="install-card-header">
+          <h3>{t(lang, 'install.source.title')}</h3>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-title">Terminal</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">git clone https://github.com/gunta/AssemblyClaw.git</span>
+            </div>
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">cd AssemblyClaw && ninja</span>
+            </div>
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">cp build/assemblyclaw /usr/local/bin/</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-card install-card--wide reveal">
+        <div class="install-card-header">
+          <h3>{t(lang, 'install.quickstart.title')}</h3>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-title">Terminal</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">assemblyclaw --version</span>
+            </div>
+            <div class="terminal-line terminal-line--output">
+              <span class="terminal-output">assemblyclaw 0.1.0 (arm64-apple-darwin)</span>
+            </div>
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-cmd">assemblyclaw agent -m <span class="terminal-string">"Hello from assembly!"</span></span>
+            </div>
+            <div class="terminal-line terminal-line--output">
+              <span class="terminal-output terminal-output--typing" id="typing-output"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

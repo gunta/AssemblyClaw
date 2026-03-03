@@ -1,0 +1,51 @@
+---
+import type { Lang } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="future">
+  <div class="section-container">
+    <div class="future-content reveal">
+      <p class="future-intro">{t(lang, 'future.intro')}</p>
+
+      <div class="future-langs">
+        <a href="https://gleam.run/" target="_blank" rel="noopener" class="future-lang-card">
+          <span class="future-lang-name">Gleam</span>
+          <span class="future-lang-tag">BEAM VM</span>
+          <span class="future-lang-desc">{t(lang, 'future.gleam.desc')}</span>
+        </a>
+        <a href="https://github.com/HigherOrderCO/Bend" target="_blank" rel="noopener" class="future-lang-card">
+          <span class="future-lang-name">Bend</span>
+          <span class="future-lang-tag">GPU-native</span>
+          <span class="future-lang-desc">{t(lang, 'future.bend.desc')}</span>
+        </a>
+        <a href="https://lean-lang.org/" target="_blank" rel="noopener" class="future-lang-card">
+          <span class="future-lang-name">Lean 4</span>
+          <span class="future-lang-tag">Provable</span>
+          <span class="future-lang-desc">{t(lang, 'future.lean.desc')}</span>
+        </a>
+        <a href="https://ziglang.org/" target="_blank" rel="noopener" class="future-lang-card">
+          <span class="future-lang-name">Zig</span>
+          <span class="future-lang-tag">Systems</span>
+          <span class="future-lang-desc">{t(lang, 'future.zig.desc')}</span>
+        </a>
+        <div class="future-lang-card future-lang-card--mystery">
+          <span class="future-lang-name">{t(lang, 'future.mystery.name')}</span>
+          <span class="future-lang-tag">{t(lang, 'future.mystery.tag')}</span>
+          <span class="future-lang-desc">{t(lang, 'future.mystery.desc')}</span>
+        </div>
+      </div>
+
+      <blockquote class="future-quote">
+        {t(lang, 'future.quote')}
+        <em>{t(lang, 'future.quote.em')}</em>
+      </blockquote>
+    </div>
+  </div>
+</section>

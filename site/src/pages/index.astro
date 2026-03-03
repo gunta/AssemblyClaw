@@ -1,0 +1,17 @@
+---
+import Page from '../layouts/Page.astro';
+---
+
+<Page lang="en" />
+
+<script>
+  // Redirect Japanese-preferring users on first visit
+  if (!sessionStorage.getItem('assemblyclaw-lang-redirected')) {
+    sessionStorage.setItem('assemblyclaw-lang-redirected', '1');
+    const stored = localStorage.getItem('assemblyclaw-lang');
+    const prefersJa = stored === 'ja' || (!stored && navigator.language?.startsWith('ja'));
+    if (prefersJa) {
+      window.location.replace(import.meta.env.BASE_URL + 'ja/');
+    }
+  }
+</script>

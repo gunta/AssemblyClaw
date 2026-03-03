@@ -1,14 +1,14 @@
 {
   "name": "assemblyclaw-site",
-  "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
   },
-  "devDependencies": {
-    "vite": "^6"
+  "type": "module",
+  "dependencies": {
+    "astro": "^5.18.0"
   }
 }
