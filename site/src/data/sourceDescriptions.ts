@@ -1,0 +1,16 @@
+export const sourceDescriptionKeys: Record<string, string> = {
+  'agent.s': 'arch.file.agent',
+  'config.s': 'arch.file.config',
+  'constants.inc': 'arch.file.constants',
+  'error.s': 'arch.file.error',
+  'http.s': 'arch.file.http',
+  'io.s': 'arch.file.io',
+  'json.s': 'arch.file.json',
+  'main.s': 'arch.file.main',
+  'memory.s': 'arch.file.memory',
+  'provider.s': 'arch.file.provider',
+  'string.s': 'arch.file.string',
+  'syscall.inc': 'arch.file.syscall',
+  'varargs.s': 'arch.file.varargs',
+  'version.s': 'arch.file.version',
+};

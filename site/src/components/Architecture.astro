@@ -1,6 +1,8 @@
 ---
 import type { Lang } from '../i18n';
 import { t } from '../i18n';
+import { repoData } from '../generated/repo-data';
+import { sourceDescriptionKeys } from '../data/sourceDescriptions';
 
 interface Props {
   lang: Lang;
@@ -19,25 +21,8 @@ const features = [
   { icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 3H5a2 2 0 00-2 2v4"/><path d="M15 3h4a2 2 0 012 2v4"/><path d="M9 21H5a2 2 0 01-2-2v-4"/><path d="M15 21h4a2 2 0 002-2v-4"/><rect x="8" y="8" width="8" height="8" rx="1" fill="currentColor" opacity=".15"/><path d="M8 12h8M12 8v8" opacity=".5"/></svg>', titleKey: 'arch.isa.title', descKey: 'arch.isa.desc' },
 ];
 
-const files = [
-  { file: 'main.s', key: 'arch.file.main' },
-  { file: 'string.s', key: 'arch.file.string' },
-  { file: 'memory.s', key: 'arch.file.memory' },
-  { file: 'io.s', key: 'arch.file.io' },
-  { file: 'json.s', key: 'arch.file.json' },
-  { file: 'http.s', key: 'arch.file.http' },
-  { file: 'config.s', key: 'arch.file.config' },
-  { file: 'provider.s', key: 'arch.file.provider' },
-  { file: 'agent.s', key: 'arch.file.agent' },
-  { file: 'error.s', key: 'arch.file.error' },
-  { file: 'varargs.s', key: 'arch.file.varargs' },
-  { file: 'version.s', key: 'arch.file.version' },
-];
-
-const includeFiles = [
-  { file: 'constants.inc', key: 'arch.file.constants' },
-  { file: 'syscall.inc', key: 'arch.file.syscall' },
-];
+const files = repoData.sourceFiles.filter((file) => file.section === 'src');
+const includeFiles = repoData.sourceFiles.filter((file) => file.section === 'include');
 ---
 
 <section class="architecture" id="architecture">
@@ -62,20 +47,20 @@ const includeFiles = [
           <div class="file-tree-header">
             <span class="file-tree-folder">src/</span>
           </div>
-          {files.map(({ file, key }) => (
-            <div class="file-entry" data-file={file}>
-              <span class="file-name">{file}</span>
-              <span class="file-desc">{t(lang, key)}</span>
-            </div>
+          {files.map((file) => (
+            <button type="button" class="file-entry" data-file={file.file}>
+              <span class="file-name">{file.file}</span>
+              <span class="file-desc">{t(lang, sourceDescriptionKeys[file.file] ?? file.relativePath)}</span>
+            </button>
           ))}
           <div class="file-tree-header file-tree-header--sub">
             <span class="file-tree-folder">include/</span>
           </div>
-          {includeFiles.map(({ file, key }) => (
-            <div class="file-entry" data-file={file}>
-              <span class="file-name">{file}</span>
-              <span class="file-desc">{t(lang, key)}</span>
-            </div>
+          {includeFiles.map((file) => (
+            <button type="button" class="file-entry" data-file={file.file}>
+              <span class="file-name">{file.file}</span>
+              <span class="file-desc">{t(lang, sourceDescriptionKeys[file.file] ?? file.relativePath)}</span>
+            </button>
           ))}
         </div>
       </div>

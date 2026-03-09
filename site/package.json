@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview"
+    "sync:source": "bun run scripts/sync-source.ts",
+    "dev": "bun run sync:source && astro dev",
+    "build": "bun run sync:source && astro build",
+    "preview": "bun run sync:source && astro preview"
   },
   "type": "module",
   "dependencies": {

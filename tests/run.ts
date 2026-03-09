@@ -7,6 +7,7 @@ type Result = { id: string; name: string; pass: boolean; detail?: string };
 const ROOT = import.meta.dir.replace(/\/tests$/, "");
 const BIN = join(ROOT, "build", "assemblyclaw");
 const TEST_BIN_DIR = (await $`mktemp -d ${(Bun.env.TMPDIR ?? "/tmp") + "/assemblyclaw-test-bin-XXXXXX"}`.text()).trim();
+const REPO_VERSION = await readRepoVersion();
 
 const NAMES: Record<string, string> = {
   "1.1": "--help prints usage",
@@ -47,7 +48,7 @@ const NAMES: Record<string, string> = {
   "5.5": "default values applied",
   "5.7": "env fallback for provider/api key",
   "6.1": "successful POST request",
-  "6.2": "JSON content-type header",
+  "6.2": "JSON content-type and user-agent headers",
   "6.3": "auth headers sent",
   "6.4": "connection failure returns error",
   "6.5": "invalid URL returns error",
@@ -79,6 +80,19 @@ const SANITIZED_MODEL_ENV: Record<string, string> = {
   LLM_MODEL: "",
   BASE_URL: "",
 };
+
+async function readRepoVersion() {
+  const text = await Bun.file(join(ROOT, "include", "constants.inc")).text();
+  const major = text.match(/\.set VERSION_MAJOR,\s*(\d+)/)?.[1];
+  const minor = text.match(/\.set VERSION_MINOR,\s*(\d+)/)?.[1];
+  const patch = text.match(/\.set VERSION_PATCH,\s*(\d+)/)?.[1];
+
+  if (!major || !minor || !patch) {
+    throw new Error("Could not parse repo version from include/constants.inc");
+  }
+
+  return `${major}.${minor}.${patch}`;
+}
 
 function decode(buf: Uint8Array | Buffer | null | undefined): string {
   if (!buf) return "";
@@ -373,7 +387,10 @@ await withServer(
     const req = state.requests[0];
     openaiReqBody = req ? JSON.parse(req.body) : null;
     t61 = res.code === 0 && res.out.trim() === "ok-provider" && req?.method === "POST";
-    t62 = !!req && (state.requests[0]?.headers.get("content-type") ?? "").includes("application/json");
+    t62 =
+      !!req &&
+      (state.requests[0]?.headers.get("content-type") ?? "").includes("application/json") &&
+      (state.requests[0]?.headers.get("user-agent") ?? "") === `AssemblyClaw/${REPO_VERSION}`;
     t71 =
       !!openaiReqBody &&
       openaiReqBody.model === "gpt-4o-mini" &&
@@ -637,4 +654,4 @@ for (const r of sorted) {
 const failCount = sorted.length - passCount;
 console.log(`\nSummary: ${passCount}/${sorted.length} passing`);
 
-if (failCount > 0) process.exit(1);
+if (failCount > 0) Bun.exit(1);

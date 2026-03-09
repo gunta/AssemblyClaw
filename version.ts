@@ -11,6 +11,8 @@ import { join } from "node:path";
 
 const CONSTANTS_INC = join(import.meta.dir, "include", "constants.inc");
 const VERSION_S = join(import.meta.dir, "src", "version.s");
+const MAIN_S = join(import.meta.dir, "src", "main.s");
+const HTTP_S = join(import.meta.dir, "src", "http.s");
 const CHANGELOG = join(import.meta.dir, "CHANGELOG.md");
 
 const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
@@ -85,6 +87,26 @@ async function updateVersionS(version: string) {
   await Bun.write(VERSION_S, text);
 }
 
+// ── Update other versioned strings ──
+
+async function updateMainS(version: string) {
+  let text = await Bun.file(MAIN_S).text();
+  text = text.replace(
+    /(_str_usage:\n\s+\.ascii\s+")assemblyclaw [\d.]+ — the world's smallest AI agent infrastructure\\n(")/,
+    `$1assemblyclaw ${version} — the world's smallest AI agent infrastructure\\n$2`
+  );
+  await Bun.write(MAIN_S, text);
+}
+
+async function updateHttpS(version: string) {
+  let text = await Bun.file(HTTP_S).text();
+  text = text.replace(
+    /(_str_useragent:\n\s+\.asciz\s+")AssemblyClaw\/[\d.]+(")/,
+    `$1AssemblyClaw/${version}$2`
+  );
+  await Bun.write(HTTP_S, text);
+}
+
 // ── Update CHANGELOG.md ──
 
 async function updateChangelog(version: string) {
@@ -118,7 +140,7 @@ async function updateChangelog(version: string) {
 const level = Bun.argv[2];
 if (!level || !["patch", "minor", "major"].includes(level)) {
   console.error(`Usage: bun version.ts ${bold("patch|minor|major")}`);
-  process.exit(1);
+  Bun.exit(1);
 }
 
 const current = await readCurrentVersion();
@@ -135,11 +157,17 @@ console.log(`  ✓ ${CONSTANTS_INC}`);
 await updateVersionS(version);
 console.log(`  ✓ ${VERSION_S}`);
 
+await updateMainS(version);
+console.log(`  ✓ ${MAIN_S}`);
+
+await updateHttpS(version);
+console.log(`  ✓ ${HTTP_S}`);
+
 await updateChangelog(version);
 console.log(`  ✓ ${CHANGELOG}`);
 
 // Git commit + tag
-await $`git add ${CONSTANTS_INC} ${VERSION_S} ${CHANGELOG}`;
+await $`git add ${CONSTANTS_INC} ${VERSION_S} ${MAIN_S} ${HTTP_S} ${CHANGELOG}`;
 await $`git commit -m ${"chore: bump to " + tag}`;
 await $`git tag ${tag}`;
 

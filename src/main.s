@@ -190,7 +190,7 @@ _str_arena_fail:
     .asciz  "fatal: could not initialize memory arena"
 
 _str_usage:
-    .ascii  "assemblyclaw 0.1.0 — the world's smallest AI agent infrastructure\n"
+    .ascii  "assemblyclaw 0.1.1 — the world's smallest AI agent infrastructure\n"
     .ascii  "\n"
     .ascii  "usage:\n"
     .ascii  "  assemblyclaw <command> [options]\n"

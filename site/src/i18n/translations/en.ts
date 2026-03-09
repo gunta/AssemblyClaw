@@ -6,6 +6,7 @@ export const translations: Record<string, string> = {
   'meta.ogDescription': 'Pure ARM64 assembly AI agent. Latest measured: 35 KB binary, 4 ms startup, 1 MB peak RSS.',
 
   // Nav
+  'nav.source': 'Source',
   'nav.benchmark': 'Benchmark',
   'nav.architecture': 'Architecture',
   'nav.install': 'Install',
@@ -19,8 +20,8 @@ export const translations: Record<string, string> = {
   'hero.stat.binary': 'Binary',
   'hero.stat.startup': 'Startup',
   'hero.stat.ram': 'RAM',
-  'hero.cta.start': 'Get Started',
-  'hero.cta.source': 'View Source',
+  'hero.cta.start': 'Install',
+  'hero.cta.source': 'Read the Code',
   'hero.scroll': 'scroll',
 
   // Progression
@@ -94,12 +95,40 @@ export const translations: Record<string, string> = {
   'arch.file.constants': 'Buffer sizes & error codes',
   'arch.file.syscall': 'macOS ARM64 syscall numbers',
 
+  // Source
+  'source.eyebrow': 'Source',
+  'source.title': 'Browse the real<br><em>assembly.</em>',
+  'source.description': 'Generated from the current checkout before every <code>bun run dev</code> and <code>bun run build</code>. {version}, {files} files, {lines} mirrored lines, commit {commit}.',
+  'source.card.body': 'Open the CLI entrypoint, inspect any module, or jump from the LP to the exact source file you want.',
+  'source.cta.open': 'Open main.s',
+  'source.cta.download': 'Download main.s',
+  'source.cta.github': 'GitHub tree',
+  'source.stat.files': 'Files',
+  'source.stat.lines': 'Lines',
+  'source.stat.version': 'Version',
+  'source.stat.commit': 'Commit',
+  'source.stat.size': 'Mirror Size',
+  'source.filter.all': 'All',
+  'source.search.label': 'Filter files',
+  'source.search.placeholder': 'Search by file name or responsibility',
+  'source.note': 'Source files and repo metadata are generated inside site/ before every dev/build run.',
+  'source.group.src': 'src/',
+  'source.group.include': 'include/',
+  'source.linesSuffix': 'lines',
+  'source.empty': 'No files match the current filter.',
+  'source.modal.copy': 'Copy',
+  'source.modal.download': 'Download',
+  'source.modal.raw': 'Raw',
+  'source.modal.github': 'GitHub',
+  'source.modal.close': 'Close source viewer',
+
   // Install
   'install.eyebrow': 'Get Started',
   'install.title': 'One command<br><em>away.</em>',
   'install.homebrew.badge': 'Recommended',
   'install.homebrew.title': 'Homebrew',
   'install.source.title': 'Build from Source',
+  'install.source.browse': 'Browse mirrored {file}',
   'install.quickstart.title': 'Quick Start',
 
   // Future

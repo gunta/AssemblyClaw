@@ -6,6 +6,7 @@ export const translations: Record<string, string> = {
   'meta.ogDescription': '\u7D14\u7C8BARM64\u30A2\u30BB\u30F3\u30D6\u30EAAI\u30A8\u30FC\u30B8\u30A7\u30F3\u30C8\u3002\u6700\u65B0\u8A08\u6E2C: 35 KB\u30D0\u30A4\u30CA\u30EA\u30014 ms\u8D77\u52D5\u30011 MB\u30D4\u30FC\u30AFRSS\u3002',
 
   // Nav
+  'nav.source': '\u30BD\u30FC\u30B9',
   'nav.benchmark': '\u30D9\u30F3\u30C1\u30DE\u30FC\u30AF',
   'nav.architecture': '\u30A2\u30FC\u30AD\u30C6\u30AF\u30C1\u30E3',
   'nav.install': '\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB',
@@ -19,8 +20,8 @@ export const translations: Record<string, string> = {
   'hero.stat.binary': '\u30D0\u30A4\u30CA\u30EA',
   'hero.stat.startup': '\u8D77\u52D5',
   'hero.stat.ram': '\u30E1\u30E2\u30EA',
-  'hero.cta.start': '\u306F\u3058\u3081\u308B',
-  'hero.cta.source': '\u30BD\u30FC\u30B9\u3092\u898B\u308B',
+  'hero.cta.start': '\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB',
+  'hero.cta.source': '\u30B3\u30FC\u30C9\u3092\u8AAD\u3080',
   'hero.scroll': '\u30B9\u30AF\u30ED\u30FC\u30EB',
 
   // Progression
@@ -94,12 +95,40 @@ export const translations: Record<string, string> = {
   'arch.file.constants': '\u30D0\u30C3\u30D5\u30A1\u30B5\u30A4\u30BA\u3068\u30A8\u30E9\u30FC\u30B3\u30FC\u30C9',
   'arch.file.syscall': 'macOS ARM64\u30B7\u30B9\u30C6\u30E0\u30B3\u30FC\u30EB\u756A\u53F7',
 
+  // Source
+  'source.eyebrow': '\u30BD\u30FC\u30B9',
+  'source.title': '\u672C\u7269\u306E<br><em>\u30A2\u30BB\u30F3\u30D6\u30EA\u3092\u95B2\u89A7\u3002</em>',
+  'source.description': '<code>bun run dev</code>\u3068<code>bun run build</code>\u306E\u524D\u306B\u73FE\u5728\u306E\u30C1\u30A7\u30C3\u30AF\u30A2\u30A6\u30C8\u304B\u3089\u751F\u6210\u3002{version}\u3001{files}\u30D5\u30A1\u30A4\u30EB\u3001\u30DF\u30E9\u30FC\u884C\u6570 {lines}\u3001\u30B3\u30DF\u30C3\u30C8 {commit}\u3002',
+  'source.card.body': 'CLI\u306E\u30A8\u30F3\u30C8\u30EA\u30DD\u30A4\u30F3\u30C8\u3092\u958B\u3044\u305F\u308A\u3001\u5404\u30E2\u30B8\u30E5\u30FC\u30EB\u3092\u8AAD\u3093\u3060\u308A\u3001LP\u304B\u3089\u76F4\u63A5\u304A\u76EE\u5F53\u3066\u306E\u30BD\u30FC\u30B9\u3078\u98DB\u3079\u308B\u3002',
+  'source.cta.open': 'main.s \u3092\u958B\u304F',
+  'source.cta.download': 'main.s \u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9',
+  'source.cta.github': 'GitHub tree',
+  'source.stat.files': '\u30D5\u30A1\u30A4\u30EB\u6570',
+  'source.stat.lines': '\u884C\u6570',
+  'source.stat.version': '\u30D0\u30FC\u30B8\u30E7\u30F3',
+  'source.stat.commit': '\u30B3\u30DF\u30C3\u30C8',
+  'source.stat.size': '\u30DF\u30E9\u30FC\u30B5\u30A4\u30BA',
+  'source.filter.all': '\u3059\u3079\u3066',
+  'source.search.label': '\u30D5\u30A1\u30A4\u30EB\u3092\u7D5E\u308A\u8FBC\u3080',
+  'source.search.placeholder': '\u30D5\u30A1\u30A4\u30EB\u540D\u3084\u5F79\u5272\u3067\u691C\u7D22',
+  'source.note': '\u30BD\u30FC\u30B9\u30D5\u30A1\u30A4\u30EB\u3068\u30EA\u30DD\u30B8\u30C8\u30EA\u30E1\u30BF\u30C7\u30FC\u30BF\u306F\u3001site/\u5185\u3067\u5404dev/build\u524D\u306B\u751F\u6210\u3055\u308C\u308B\u3002',
+  'source.group.src': 'src/',
+  'source.group.include': 'include/',
+  'source.linesSuffix': '\u884C',
+  'source.empty': '\u73FE\u5728\u306E\u30D5\u30A3\u30EB\u30BF\u306B\u4E00\u81F4\u3059\u308B\u30D5\u30A1\u30A4\u30EB\u306F\u3042\u308A\u307E\u305B\u3093\u3002',
+  'source.modal.copy': '\u30B3\u30D4\u30FC',
+  'source.modal.download': '\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9',
+  'source.modal.raw': 'Raw',
+  'source.modal.github': 'GitHub',
+  'source.modal.close': '\u30BD\u30FC\u30B9\u30D3\u30E5\u30FC\u30A2\u3092\u9589\u3058\u308B',
+
   // Install
   'install.eyebrow': '\u306F\u3058\u3081\u308B',
   'install.title': '\u30B3\u30DE\u30F3\u30C9\u3072\u3068\u3064\u3067<br><em>\u3059\u3050\u306B\u3002</em>',
   'install.homebrew.badge': '\u304A\u3059\u3059\u3081',
   'install.homebrew.title': 'Homebrew',
   'install.source.title': '\u30BD\u30FC\u30B9\u304B\u3089\u30D3\u30EB\u30C9',
+  'install.source.browse': '\u30DF\u30E9\u30FC\u3055\u308C\u305F{file}\u3092\u898B\u308B',
   'install.quickstart.title': '\u30AF\u30A4\u30C3\u30AF\u30B9\u30BF\u30FC\u30C8',
 
   // Future

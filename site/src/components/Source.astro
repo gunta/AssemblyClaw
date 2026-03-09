@@ -1,0 +1,134 @@
+---
+import type { Lang } from '../i18n';
+import { t } from '../i18n';
+import { repoData, defaultSourceFile } from '../generated/repo-data';
+import { sourceDescriptionKeys } from '../data/sourceDescriptions';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const featuredFile = defaultSourceFile;
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(bytes >= 10 * 1024 ? 0 : 1)} KB`;
+}
+
+const stats = [
+  { label: t(lang, 'source.stat.files'), value: String(repoData.sourceSummary.files) },
+  { label: t(lang, 'source.stat.lines'), value: repoData.sourceSummary.totalLines.toLocaleString(lang === 'ja' ? 'ja-JP' : 'en-US') },
+  { label: t(lang, 'source.stat.version'), value: repoData.versionTag },
+  { label: t(lang, 'source.stat.commit'), value: repoData.commitShort },
+  { label: t(lang, 'source.stat.size'), value: formatBytes(repoData.sourceSummary.totalBytes) },
+];
+---
+
+<section class="source-section" id="source">
+  <div class="source-grid-lines"></div>
+  <div class="section-container">
+    <div class="section-eyebrow reveal">{t(lang, 'source.eyebrow')}</div>
+    <div class="source-hero">
+      <div class="source-copy">
+        <h2 class="section-title reveal" set:html={t(lang, 'source.title')} />
+        <p
+          class="section-description reveal"
+          set:html={t(lang, 'source.description', {
+            commit: repoData.commitShort,
+            files: String(repoData.sourceSummary.files),
+            lines: repoData.sourceSummary.totalLines.toLocaleString(lang === 'ja' ? 'ja-JP' : 'en-US'),
+            version: repoData.versionTag,
+          })}
+        />
+      </div>
+
+      <div class="source-actions-card reveal">
+        <p class="source-actions-body">{t(lang, 'source.card.body')}</p>
+        <div class="source-actions-list">
+          <button type="button" class="btn btn--primary" data-source-open={featuredFile?.file}>
+            <span>{t(lang, 'source.cta.open')}</span>
+          </button>
+          <a href={`${base}${featuredFile?.mirrorPath ?? ''}`} class="btn btn--ghost" download={featuredFile?.file ?? 'main.s'}>
+            <span>{t(lang, 'source.cta.download')}</span>
+          </a>
+          <a href={featuredFile?.blobUrl ?? repoData.repoUrl} target="_blank" rel="noopener" class="btn btn--ghost">
+            <span>{t(lang, 'source.cta.github')}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-stats reveal">
+      {stats.map((stat) => (
+        <div class="source-stat-card">
+          <span class="source-stat-value">{stat.value}</span>
+          <span class="source-stat-label">{stat.label}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="source-browser reveal">
+      <div class="source-browser-header">
+        <label class="source-search" for="source-search">
+          <span class="source-search-label">{t(lang, 'source.search.label')}</span>
+          <input
+            id="source-search"
+            type="search"
+            class="source-search-input"
+            placeholder={t(lang, 'source.search.placeholder')}
+            autocomplete="off"
+            data-source-search
+          />
+        </label>
+        <div class="source-browser-controls">
+          <div class="source-filter-tabs">
+            <button type="button" class="source-filter is-active" data-source-filter="all">{t(lang, 'source.filter.all')}</button>
+            <button type="button" class="source-filter" data-source-filter="src">{t(lang, 'source.group.src')}</button>
+            <button type="button" class="source-filter" data-source-filter="include">{t(lang, 'source.group.include')}</button>
+          </div>
+          <span class="source-results" id="source-results">{repoData.sourceSummary.files} / {repoData.sourceSummary.files}</span>
+        </div>
+      </div>
+      <p class="source-browser-note">{t(lang, 'source.note')}</p>
+
+      <div class="source-file-list">
+        {repoData.sourceFiles.map((file) => {
+          const description = t(lang, sourceDescriptionKeys[file.file] ?? file.relativePath);
+          const search = `${file.file} ${description} ${file.relativePath} ${file.sha256}`.toLowerCase();
+
+          return (
+            <button
+              type="button"
+              class="source-file-button"
+              data-file={file.file}
+              data-source-item
+              data-source-filter-group={file.section}
+              data-source-github={file.blobUrl}
+              data-source-raw={file.rawUrl}
+              data-search={search}
+            >
+              <span class="source-file-main">
+                <span class="source-file-title-row">
+                  <span class="source-file-name">{file.file}</span>
+                  <span class:list={['source-file-group', `source-file-group--${file.section}`]}>
+                    {t(lang, file.section === 'src' ? 'source.group.src' : 'source.group.include')}
+                  </span>
+                </span>
+                <span class="source-file-desc">{description}</span>
+              </span>
+              <span class="source-file-meta">
+                <span>{file.relativePath}</span>
+                <span>{file.lines} {t(lang, 'source.linesSuffix')}</span>
+                <span>{formatBytes(file.bytes)}</span>
+                <span>{file.sha256.slice(0, 8)}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div class="source-empty" id="source-empty" hidden>{t(lang, 'source.empty')}</div>
+    </div>
+  </div>
+</section>

@@ -11,7 +11,9 @@ import Page from '../layouts/Page.astro';
     const stored = localStorage.getItem('assemblyclaw-lang');
     const prefersJa = stored === 'ja' || (!stored && navigator.language?.startsWith('ja'));
     if (prefersJa) {
-      window.location.replace(import.meta.env.BASE_URL + 'ja/');
+      const rawBase = import.meta.env.BASE_URL || '/';
+      const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+      window.location.replace(`${base}ja/`);
     }
   }
 </script>

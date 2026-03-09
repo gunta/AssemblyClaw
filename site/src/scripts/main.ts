@@ -43,7 +43,7 @@ class CircuitCanvas {
     this.canvas.height = this.h * this.dpr;
     this.canvas.style.width = this.w + 'px';
     this.canvas.style.height = this.h + 'px';
-    this.ctx.scale(this.dpr, this.dpr);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
   init() {
@@ -138,7 +138,13 @@ class CircuitCanvas {
 
 // ─── SCROLL REVEAL ───
 
-function initScrollReveal() {
+function initScrollReveal(reducedMotion = false) {
+  const targets = Array.from(document.querySelectorAll('.reveal'));
+  if (reducedMotion) {
+    targets.forEach((el) => el.classList.add('visible'));
+    return;
+  }
+
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -150,7 +156,7 @@ function initScrollReveal() {
     { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
   );
 
-  document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+  targets.forEach((el) => observer.observe(el));
 }
 
 // ─── NAVBAR SCROLL ───
@@ -269,7 +275,9 @@ function applyBenchmarkData(data: any) {
 
 async function initBenchmarksFromJson() {
   try {
-    const url = `${import.meta.env.BASE_URL}benchmarks.json`;
+    const rawBase = import.meta.env.BASE_URL || '/';
+    const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+    const url = `${base}benchmarks.json`;
     const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
@@ -281,7 +289,18 @@ async function initBenchmarksFromJson() {
 
 // ─── BENCHMARK BAR ANIMATIONS ───
 
-function initBenchmarkBars() {
+function initBenchmarkBars(reducedMotion = false) {
+  if (reducedMotion) {
+    document.querySelectorAll('.bar-fill').forEach((fill) => {
+      const width = (fill as HTMLElement).dataset.width;
+      if (width) {
+        (fill as HTMLElement).style.setProperty('--bar-w', width + '%');
+        fill.classList.add('animated');
+      }
+    });
+    return;
+  }
+
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -325,12 +344,19 @@ function initCopyButtons() {
 
 // ─── TYPING EFFECT ───
 
-function initTypingEffect() {
+function initTypingEffect(reducedMotion = false) {
   const el = document.getElementById('typing-output');
   if (!el) return;
 
   const template = window.__TYPING_TEXT__ || "Hello! I'm running in {binarySize} of pure ARM64 assembly. How can I help you today?";
   const text = template.replace('{binarySize}', runtimeMetrics.binaryDisplay);
+
+  if (reducedMotion) {
+    el.textContent = text;
+    el.style.borderRight = 'none';
+    return;
+  }
+
   let i = 0;
 
   const observer = new IntersectionObserver(
@@ -361,6 +387,7 @@ function initTypingEffect() {
 function initSmoothScroll() {
   document.querySelectorAll('a[href^="#"]').forEach((link) => {
     link.addEventListener('click', (e) => {
+      if (link.hasAttribute('data-source-open')) return;
       const id = link.getAttribute('href');
       if (id === '#') return;
       const target = document.querySelector(id!);
@@ -397,22 +424,53 @@ function highlightASM(code: string) {
 function initSourceViewer() {
   const overlay = document.getElementById('source-overlay');
   const filenameEl = document.getElementById('source-filename');
-  const linesEl = document.getElementById('source-lines');
+  const linesEl = document.getElementById('source-meta');
   const codeEl = document.getElementById('source-code');
   const closeBtn = document.getElementById('source-close');
+  const copyBtn = document.getElementById('source-copy') as HTMLButtonElement | null;
+  const downloadLink = document.getElementById('source-download') as HTMLAnchorElement | null;
+  const rawLink = document.getElementById('source-raw') as HTMLAnchorElement | null;
+  const githubLink = document.getElementById('source-github') as HTMLAnchorElement | null;
   if (!overlay) return;
 
+  const rawBase = import.meta.env.BASE_URL || '/';
+  const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+  let currentCode = '';
+
+  function updateHash(filename: string | null) {
+    const url = new URL(window.location.href);
+    if (filename) {
+      url.hash = `source=${encodeURIComponent(filename)}`;
+    } else if (url.hash.startsWith('#source=')) {
+      url.hash = '';
+    }
+    history.replaceState(null, '', url);
+  }
+
   function open(filename: string) {
-    const base = import.meta.env.BASE_URL || '/';
     fetch(`${base}source/${filename}`)
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
       .then((code) => {
         const lineCount = code.split('\n').length;
+        const sourceMeta = document.querySelector(`[data-file="${filename}"][data-source-github]`) as HTMLElement | null;
+        currentCode = code;
         filenameEl!.textContent = filename;
         linesEl!.textContent = `${lineCount} lines`;
         codeEl!.innerHTML = highlightASM(code);
+        if (downloadLink) {
+          downloadLink.href = `${base}source/${filename}`;
+          downloadLink.download = filename;
+        }
+        if (rawLink) {
+          rawLink.href = sourceMeta?.dataset.sourceRaw ?? `${base}source/${filename}`;
+        }
+        if (githubLink) {
+          githubLink.href = sourceMeta?.dataset.sourceGithub ?? '';
+        }
         overlay!.classList.add('active');
         document.body.style.overflow = 'hidden';
+        updateHash(filename);
+        closeBtn?.focus();
       })
       .catch((err) => console.warn('Failed to load source:', err));
   }
@@ -420,10 +478,34 @@ function initSourceViewer() {
   function close() {
     overlay!.classList.remove('active');
     document.body.style.overflow = '';
+    updateHash(null);
   }
 
-  document.querySelectorAll('.file-entry[data-file]').forEach((entry) => {
-    entry.addEventListener('click', () => open((entry as HTMLElement).dataset.file!));
+  document.querySelectorAll('[data-file], [data-source-open]').forEach((entry) => {
+    entry.addEventListener('click', (event) => {
+      const filename =
+        (entry as HTMLElement).dataset.file ??
+        (entry as HTMLElement).dataset.sourceOpen;
+
+      if (!filename) return;
+      if (entry instanceof HTMLAnchorElement) {
+        event.preventDefault();
+      }
+      open(filename);
+    });
+  });
+
+  copyBtn?.addEventListener('click', async () => {
+    if (!currentCode) return;
+    try {
+      await navigator.clipboard.writeText(currentCode);
+      copyBtn.dataset.state = 'copied';
+      window.setTimeout(() => {
+        copyBtn.dataset.state = '';
+      }, 1600);
+    } catch {
+      copyBtn.dataset.state = '';
+    }
   });
 
   closeBtn!.addEventListener('click', close);
@@ -431,6 +513,55 @@ function initSourceViewer() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && overlay!.classList.contains('active')) close();
   });
+
+  if (window.location.hash.startsWith('#source=')) {
+    open(decodeURIComponent(window.location.hash.replace('#source=', '')));
+  }
+}
+
+function initSourceSearch() {
+  const input = document.getElementById('source-search') as HTMLInputElement | null;
+  const items = Array.from(document.querySelectorAll('[data-source-item]')) as HTMLElement[];
+  const filters = Array.from(document.querySelectorAll('[data-source-filter]')) as HTMLButtonElement[];
+  const results = document.getElementById('source-results');
+  const empty = document.getElementById('source-empty');
+  if (!input || !items.length) return;
+
+  let activeFilter = 'all';
+
+  function applyFilters() {
+    const query = input.value.trim().toLowerCase();
+    let visibleCount = 0;
+    for (const item of items) {
+      const haystack = item.dataset.search ?? '';
+      const group = item.dataset.sourceFilterGroup ?? 'src';
+      const matchesQuery = query.length === 0 || haystack.includes(query);
+      const matchesFilter = activeFilter === 'all' || activeFilter === group;
+      const visible = matchesQuery && matchesFilter;
+      item.hidden = !visible;
+      if (visible) visibleCount++;
+    }
+
+    if (results) {
+      results.textContent = `${visibleCount} / ${items.length}`;
+    }
+    if (empty) {
+      empty.hidden = visibleCount !== 0;
+    }
+  }
+
+  input.addEventListener('input', applyFilters);
+  filters.forEach((filter) => {
+    filter.addEventListener('click', () => {
+      activeFilter = filter.dataset.sourceFilter ?? 'all';
+      filters.forEach((button) => {
+        button.classList.toggle('is-active', button === filter);
+      });
+      applyFilters();
+    });
+  });
+
+  applyFilters();
 }
 
 // ─── GLOSSARY POPOVERS ───
@@ -525,10 +656,19 @@ function initGlossary() {
 
   function hide() {
     popover.classList.remove('visible');
+    if (activeTerm instanceof HTMLElement) {
+      activeTerm.setAttribute('aria-expanded', 'false');
+    }
     activeTerm = null;
   }
 
   terms.forEach((term) => {
+    if (term instanceof HTMLElement) {
+      term.tabIndex = 0;
+      term.setAttribute('role', 'button');
+      term.setAttribute('aria-expanded', 'false');
+    }
+
     term.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -536,6 +676,16 @@ function initGlossary() {
         hide();
       } else {
         show(term);
+        if (term instanceof HTMLElement) {
+          term.setAttribute('aria-expanded', 'true');
+        }
+      }
+    });
+
+    term.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        (term as HTMLElement).click();
       }
     });
   });
@@ -562,19 +712,23 @@ function initGlossary() {
 
 // ─── INIT ───
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;
-  if (canvas) new CircuitCanvas(canvas);
+  if (canvas && !reducedMotion) new CircuitCanvas(canvas);
 
-  await initBenchmarksFromJson();
-  initScrollReveal();
+  void initBenchmarksFromJson();
+  initScrollReveal(reducedMotion);
   initNavScroll();
-  initBenchmarkBars();
+  initBenchmarkBars(reducedMotion);
   initCopyButtons();
-  initTypingEffect();
+  initTypingEffect(reducedMotion);
   initSmoothScroll();
   initSourceViewer();
+  initSourceSearch();
   initGlossary();
+
+  if (reducedMotion) return;
 
   // trigger hero reveals immediately with stagger
   const heroReveals = document.querySelectorAll('.hero .reveal');

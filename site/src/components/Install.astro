@@ -1,12 +1,14 @@
 ---
 import type { Lang } from '../i18n';
 import { t } from '../i18n';
+import { repoData, defaultSourceFile } from '../generated/repo-data';
 
 interface Props {
   lang: Lang;
 }
 
 const { lang } = Astro.props;
+const featuredFile = defaultSourceFile;
 ---
 
 <section class="install" id="install">
@@ -54,18 +56,32 @@ const { lang } = Astro.props;
           <div class="terminal-body">
             <div class="terminal-line">
               <span class="terminal-prompt">$</span>
-              <span class="terminal-cmd">git clone https://github.com/gunta/AssemblyClaw.git</span>
+              <span class="terminal-cmd">git clone {repoData.cloneUrl}</span>
+              <button class="copy-btn" data-copy={`git clone ${repoData.cloneUrl}`} aria-label="Copy command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
             </div>
             <div class="terminal-line">
               <span class="terminal-prompt">$</span>
               <span class="terminal-cmd">cd AssemblyClaw && ninja</span>
+              <button class="copy-btn" data-copy="cd AssemblyClaw && ninja" aria-label="Copy command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
             </div>
             <div class="terminal-line">
               <span class="terminal-prompt">$</span>
-              <span class="terminal-cmd">cp build/assemblyclaw /usr/local/bin/</span>
+              <span class="terminal-cmd">sudo install -m 0755 build/assemblyclaw /usr/local/bin/assemblyclaw</span>
+              <button class="copy-btn" data-copy="sudo install -m 0755 build/assemblyclaw /usr/local/bin/assemblyclaw" aria-label="Copy command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
             </div>
           </div>
         </div>
+        {featuredFile && (
+          <a href="#source" class="install-inline-link" data-source-open={featuredFile.file}>
+            {t(lang, 'install.source.browse', { file: featuredFile.file })}
+          </a>
+        )}
       </div>
 
       <div class="install-card install-card--wide reveal">
@@ -85,7 +101,7 @@ const { lang } = Astro.props;
               <span class="terminal-cmd">assemblyclaw --version</span>
             </div>
             <div class="terminal-line terminal-line--output">
-              <span class="terminal-output">assemblyclaw 0.1.0 (arm64-apple-darwin)</span>
+              <span class="terminal-output">{repoData.cliVersionLine}</span>
             </div>
             <div class="terminal-line">
               <span class="terminal-prompt">$</span>

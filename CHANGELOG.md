@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- LP/source overhaul: the site now generates a source mirror + repo metadata before every `bun run dev`/`bun run build`, exposes a first-class source explorer on the landing page, and keeps install/source links tied to the current checkout.
+- LP UX/accessibility pass: moved install earlier in the funnel, made source browsing keyboard-accessible, added reduced-motion fallbacks, and fixed the hero canvas resize transform bug.
+- Versioning/tooling hardening: synced stale `0.1.0` strings in assembly sources, taught `version.ts` to update all versioned runtime strings, and added an integration test that asserts the HTTP user-agent matches the repo version.
 - Docs/LP fact-check pass: synchronized benchmark numbers with `site/public/benchmarks.json` and clarified dependency/runtime wording (`libSystem` link + runtime `libcurl` for HTTP).
 - Restored brand line wording: "The world's smallest AI agent infrastructure" across LP title/hero, README, CLI help banner, and formula description.
 - Restored story-first narrative copy in README and LP future/author sections.

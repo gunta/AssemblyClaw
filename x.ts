@@ -25,7 +25,7 @@
 //   release major      Same for major
 //   install            Build + install to /usr/local/bin
 
-import { $, type ShellOutput } from "bun";
+import { $ } from "bun";
 import { join } from "node:path";
 
 const ROOT = import.meta.dir;
@@ -52,7 +52,7 @@ async function ensureBinary() {
 
 function fail(msg: string): never {
   console.error(`\n  ${red("✗")} ${msg}\n`);
-  process.exit(1);
+  Bun.exit(1);
 }
 
 // ── Commands ──
@@ -84,7 +84,7 @@ const commands: Record<string, () => Promise<void>> = {
       stdio: ["inherit", "inherit", "inherit"],
     });
     const code = await proc.exited;
-    process.exit(code);
+    Bun.exit(code);
   },
 
   async debug() {
@@ -96,7 +96,7 @@ const commands: Record<string, () => Promise<void>> = {
     const proc = Bun.spawn(["lldb", debugBin, ...rest], {
       stdio: ["inherit", "inherit", "inherit"],
     });
-    process.exit(await proc.exited);
+    Bun.exit(await proc.exited);
   },
 
   async size() {
@@ -119,16 +119,7 @@ const commands: Record<string, () => Promise<void>> = {
 
   async source() {
     if (sub !== "sync") fail("Usage: bun x source sync");
-    const srcDir = join(ROOT, "src");
-    const incDir = join(ROOT, "include");
-    const dest = join(SITE, "public", "source");
-    await $`mkdir -p ${dest}`;
-    await $`cp ${srcDir}/*.s ${dest}/`;
-    await $`cp ${incDir}/*.inc ${dest}/`;
-    // Count files
-    const sFiles = (await $`ls ${dest}/*.s`.text()).trim().split("\n").length;
-    const incFiles = (await $`ls ${dest}/*.inc`.text()).trim().split("\n").length;
-    console.log(`\n  ${green("✓")} Synced ${sFiles} .s + ${incFiles} .inc files to site/public/source/\n`);
+    await $`bun run sync:source`.cwd(SITE);
   },
 
   async version() {
@@ -188,7 +179,7 @@ if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
     bun x release major      Same for major
     bun x install            Build + install to /usr/local/bin
 `);
-  process.exit(0);
+  Bun.exit(0);
 }
 
 const handler = commands[cmd];

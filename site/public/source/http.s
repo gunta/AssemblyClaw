@@ -455,7 +455,7 @@ _g_http_curl_failed:
 .section __DATA,__const
 .p2align 3
 _str_useragent:
-    .asciz  "AssemblyClaw/0.1.0"
+    .asciz  "AssemblyClaw/0.1.1"
 _str_content_type:
     .asciz  "Content-Type: application/json"
 _str_auth_fmt:
